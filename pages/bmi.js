@@ -25,9 +25,10 @@ function BmiPage() {
     }
   }
 
+  const figMap = { Underweight:'thin', Normal:'normal', Overweight:'overweight', Obese:'obese' }
   const figureImg = female
-    ? `${GITHUB_BASE}bmi_${cat.toLowerCase()}_f.png`
-    : `${GITHUB_BASE}bmi_${cat.toLowerCase()}.png`
+    ? `${GITHUB_BASE}bmi_f_${figMap[cat]}.png`
+    : `${GITHUB_BASE}bmi_${figMap[cat]}.png`
 
   const categories = [
     { key:'Underweight', label:'Недостаток веса', icon:'🟡', color:'#FFC400', range: female ? '< 17.5' : '< 18.5' },
