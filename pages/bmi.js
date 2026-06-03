@@ -25,7 +25,7 @@ function BmiPage() {
     }
   }
 
-  const figMap = { Underweight:'thin', Normal:'normal', Overweight:'overweight', Obese:'obese' }
+  const figMap = { Underweight:'thin', Normal:'normal', Overweight:'obese', Obese:'overweight' }
   const figureImg = female
     ? `${GITHUB_BASE}bmi_f_${figMap[cat]}.png`
     : `${GITHUB_BASE}bmi_${figMap[cat]}.png`
