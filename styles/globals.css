@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg, #081320);
+  color: var(--text, #fff);
+  transition: background 0.4s, color 0.4s;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border, #1E3C64); border-radius: 3px; }
+input, select, textarea { font-family: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+a { text-decoration: none; color: inherit; }
+
+:root {
+  --bg: #081320; --nav: #06121A; --card: #11243B; --input-bg: #0C1E34;
+  --primary: #00C6FF; --primary-dk: #0072FF; --accent: #00E5A8;
+  --text: #FFFFFF; --text-sec: #C9D4E5; --border: #1E3C64;
+  --badge-bg: rgba(0,114,255,0.18); --badge-bd: rgba(0,198,255,0.35);
+  --shadow: rgba(0,198,255,0.18);
+}
+[data-theme="midnight"] {
+  --bg: #05050A; --nav: #030308; --card: #0F0F1C; --input-bg: #0A0A14;
+  --primary: #9664FF; --primary-dk: #6432DC; --accent: #C896FF;
+  --text-sec: #B4AAD2; --border: #282341;
+  --badge-bg: rgba(100,50,220,0.18); --badge-bd: rgba(150,100,255,0.35);
+  --shadow: rgba(150,100,255,0.18);
+}
+[data-theme="forest"] {
+  --bg: #020A05; --nav: #010602; --card: #071508; --input-bg: #08190E;
+  --primary: #00C864; --primary-dk: #009646; --accent: #64FF96;
+  --text-sec: #B4DCBE; --border: #194628;
+  --badge-bg: rgba(0,150,70,0.18); --badge-bd: rgba(0,200,100,0.35);
+  --shadow: rgba(0,200,100,0.18);
+}
+[data-theme="sunset"] {
+  --bg: #0A0500; --nav: #080300; --card: #1A0C06; --input-bg: #230F08;
+  --primary: #FF6B35; --primary-dk: #DC3C14; --accent: #FFC400;
+  --text-sec: #F0D2B4; --border: #502814;
+  --badge-bg: rgba(220,60,20,0.18); --badge-bd: rgba(255,107,53,0.35);
+  --shadow: rgba(255,107,53,0.18);
+}
