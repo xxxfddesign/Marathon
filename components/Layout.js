@@ -112,7 +112,7 @@ export default function Layout({ children }) {
           </button>
 
           <Link href="/admin" style={{ padding:'6px 14px', borderRadius:8, background:'rgba(255,255,255,0.05)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:12, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:5 }}>
-            <span style={mdl2}>{'\uE72E'}</span> LOGIN
+            <span style={mdl2}>{'\uE72E'}</span> Войти
           </Link>
 
           {session?.user ? (
