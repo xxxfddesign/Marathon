@@ -1,5 +1,4 @@
 import Layout from '../components/Layout'
-import withAuth from '../components/withAuth'
 import { useState, useEffect } from 'react'
 import { BMI_COLOR, BMI_NAME, calcAge } from '../lib/constants'
 
@@ -8,6 +7,7 @@ const ROLE_RU = { Runner:'Бегун', Coordinator:'Координатор', Adm
 
 function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
   const [login, setLogin] = useState('')
   const [pwd, setPwd] = useState('')
   const [error, setError] = useState('')
@@ -23,6 +23,7 @@ function AdminPage() {
   useEffect(() => {
     const saved = localStorage.getItem('admin_logged_in')
     if (saved === 'true') setIsLoggedIn(true)
+    setAuthChecked(true)
   }, [])
 
   useEffect(() => {
@@ -78,6 +79,13 @@ function AdminPage() {
     await fetch(`/api/admin-participants?id=${id}`, { method: 'DELETE', headers: { 'x-admin-secret': 'marathon_admin_2026' } })
     loadParticipants()
   }
+
+  // LOADING (while reading localStorage)
+  if (!authChecked) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#081320' }}>
+      <div style={{ color:'#00C6FF', fontFamily:'Rajdhani,sans-serif', fontSize:18 }}>Загрузка...</div>
+    </div>
+  )
 
   // LOGIN PAGE
   if (!isLoggedIn) return (
@@ -178,7 +186,7 @@ function AdminPage() {
         <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
           <div style={{ padding:'20px 32px 0', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <h2 style={{ fontFamily:'Rajdhani,sans-serif', fontSize:28, fontWeight:800, color:th.primary }}>👑 Панель администратора</h2>
-            <button onClick={() => setIsLoggedIn(false)} style={{ padding:'7px 16px', borderRadius:8, background:'rgba(255,72,96,0.1)', border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Logout</button>
+            <button onClick={() => { setIsLoggedIn(false); localStorage.removeItem('admin_logged_in') }} style={{ padding:'7px 16px', borderRadius:8, background:'rgba(255,72,96,0.1)', border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Logout</button>
           </div>
 
           <div style={{ padding:'14px 32px', display:'flex', gap:10, flexShrink:0, flexWrap:'wrap' }}>
@@ -244,4 +252,4 @@ function AdminPage() {
   )
 }
 
-export default withAuth(AdminPage)
+export default AdminPage
