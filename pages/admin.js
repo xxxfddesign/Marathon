@@ -36,7 +36,7 @@ function AdminPage() {
       if (search) params.set('search', search)
       if (filter !== 'All') params.set('role', filter)
       params.set('sort', sort)
-      const res = await fetch(`/api/participants?${params}`)
+      const res = await fetch(`/api/admin-participants?${params}`, { headers: { 'x-admin-secret': 'marathon_admin_2026' } })
       const data = await res.json()
       setParticipants(Array.isArray(data) ? data : [])
     } catch {}
@@ -63,7 +63,7 @@ function AdminPage() {
   async function saveEdit() {
     if (!editForm.first_name || !editForm.last_name) { setEditError('⚠ Заполните имя и фамилию'); return }
     try {
-      const res = await fetch(`/api/participants/${editing}`, {
+      const res = await fetch(`/api/admin-participants?id=${editing}`, {
         method: 'PUT',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify(editForm),
@@ -75,7 +75,7 @@ function AdminPage() {
 
   async function deleteParticipant(id) {
     if (!confirm('Удалить участника?')) return
-    await fetch(`/api/participants/${id}`, { method: 'DELETE' })
+    await fetch(`/api/admin-participants?id=${id}`, { method: 'DELETE', headers: { 'x-admin-secret': 'marathon_admin_2026' } })
     loadParticipants()
   }
 
