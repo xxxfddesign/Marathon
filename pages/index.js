@@ -55,13 +55,15 @@ function HomePage() {
               }}>📝 Регистрация</button>
               <button onClick={(e) => requireAuth(e, '/participants')} style={{
                 padding:'12px 24px', borderRadius:10,
-                background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
-                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
               }}>👥 Участники</button>
               <button onClick={(e) => requireAuth(e, '/bmi')} style={{
                 padding:'12px 24px', borderRadius:10,
-                background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
-                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
               }}>⚖️ Калькулятор BMI</button>
               <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
                 padding:'12px 24px', borderRadius:10,
@@ -84,12 +86,7 @@ function HomePage() {
               }}>
                 <span style={{ fontSize:18 }}>🔒</span>
                 <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
-                <button onClick={() => router.push('/login')} style={{
-                  marginLeft:'auto', padding:'6px 14px', borderRadius:8,
-                  background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                  border:'none', color:'#fff', fontSize:12, fontWeight:700,
-                  cursor:'pointer', fontFamily:'inherit',
-                }}>Войти</button>
+  
               </div>
             )}
 
