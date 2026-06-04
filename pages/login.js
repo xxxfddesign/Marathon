@@ -1,42 +1,31 @@
-import { signIn, useSession } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { GITHUB_BASE } from '../lib/constants'
 
 export default function LoginPage() {
-  const { data: session, status } = useSession()
   const router = useRouter()
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (status === 'loading') return
-    if (session) router.push('/')
-  }, [session, status])
-
-  function handleLoginPassword() {
-    if (login.trim() === 'admin' && password.trim() === 'admin') {
+  function handleLogin() {
+    const l = login.trim().toLowerCase()
+    const p = password.trim().toLowerCase()
+    if (l === 'admin' && p === 'admin') {
       localStorage.setItem('admin_logged_in', 'true')
-      router.push('/admin')
+      window.location.href = '/admin'
     } else {
       setError('Неверный логин или пароль')
       setTimeout(() => setError(''), 3000)
     }
   }
 
-  if (status === 'loading') return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#081320' }}>
-      <div style={{ color:'#00C6FF', fontFamily:'Rajdhani,sans-serif', fontSize:18 }}>Загрузка...</div>
-    </div>
-  )
-
   return (
     <div style={{
       minHeight:'100vh', background:'#081320', display:'flex', alignItems:'center',
       justifyContent:'center', fontFamily:"'Inter',sans-serif", position:'relative', overflow:'hidden',
     }}>
-      {/* background glow */}
       <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(0,114,255,0.12),transparent 70%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none' }}/>
 
       <div style={{
@@ -44,7 +33,6 @@ export default function LoginPage() {
         padding:'48px 40px', width:420, maxWidth:'90vw', position:'relative', zIndex:1,
         boxShadow:'0 20px 60px rgba(0,0,0,0.5)',
       }}>
-        {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:28 }}>
           <img src={`${GITHUB_BASE}nav_logo.png`} alt="logo" style={{ height:48, marginBottom:12 }} onError={e=>e.target.style.display='none'}/>
           <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:26, fontWeight:700, color:'#fff', letterSpacing:1 }}>
@@ -57,7 +45,6 @@ export default function LoginPage() {
 
         <div style={{ borderTop:'1px solid #1E3C64', marginBottom:24 }}/>
 
-        {/* Login/Password form */}
         <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
           <div>
             <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Логин</label>
@@ -65,6 +52,7 @@ export default function LoginPage() {
               type="text"
               value={login}
               onChange={e => setLogin(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Введите логин"
               style={{
                 width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
@@ -79,6 +67,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Введите пароль"
               style={{
                 width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
@@ -95,11 +84,11 @@ export default function LoginPage() {
           )}
 
           <div style={{ display:'flex', gap:10, marginTop:4 }}>
-            <button type="button" onClick={handleLoginPassword} style={{
+            <button type="button" onClick={handleLogin} style={{
               flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
               border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
             }}>Войти</button>
-            <button type="button" onClick={() => router.push('/')} style={{
+            <button type="button" onClick={() => window.location.href = '/'} style={{
               flex:1, padding:'12px', borderRadius:10,
               background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
               color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
@@ -113,8 +102,8 @@ export default function LoginPage() {
           или войдите через Google
         </div>
 
-        {/* Google button */}
         <button
+          type="button"
           onClick={() => signIn('google', { callbackUrl: '/' })}
           style={{
             width:'100%', padding:'14px 20px', borderRadius:12,
@@ -134,7 +123,6 @@ export default function LoginPage() {
           Войти через Google
         </button>
 
-        {/* Marathon date badge */}
         <div style={{
           marginTop:24, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
           borderRadius:10, padding:'10px 16px', textAlign:'center',
