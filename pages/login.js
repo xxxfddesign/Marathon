@@ -23,7 +23,7 @@ export default function LoginPage() {
   function handleLoginPassword(e) {
     e.preventDefault()
     if (login === 'admin' && password === 'admin') {
-      router.push('/')
+      router.push('/admin')
     } else {
       setError('Неверный логин или пароль')
       setTimeout(() => setError(''), 3000)
