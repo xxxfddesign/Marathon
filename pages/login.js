@@ -10,14 +10,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  if (status === 'loading') return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#081320' }}>
-      <div style={{ color:'#00C6FF', fontFamily:'Rajdhani,sans-serif', fontSize:18 }}>Загрузка...</div>
-    </div>
-  )
+  useEffect(() => {
+    if (status === 'loading') return
+    if (session) router.push('/')
+  }, [session, status])
 
   function handleLoginPassword() {
-    if (login === 'admin' && password === 'admin') {
+    if (login.trim() === 'admin' && password.trim() === 'admin') {
       localStorage.setItem('admin_logged_in', 'true')
       router.push('/admin')
     } else {
@@ -25,6 +24,12 @@ export default function LoginPage() {
       setTimeout(() => setError(''), 3000)
     }
   }
+
+  if (status === 'loading') return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#081320' }}>
+      <div style={{ color:'#00C6FF', fontFamily:'Rajdhani,sans-serif', fontSize:18 }}>Загрузка...</div>
+    </div>
+  )
 
   return (
     <div style={{
