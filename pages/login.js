@@ -20,8 +20,7 @@ export default function LoginPage() {
     </div>
   )
 
-  function handleLoginPassword(e) {
-    e.preventDefault()
+  function handleLoginPassword() {
     if (login === 'admin' && password === 'admin') {
       localStorage.setItem('admin_logged_in', 'true')
       router.push('/admin')
@@ -58,7 +57,7 @@ export default function LoginPage() {
         <div style={{ borderTop:'1px solid #1E3C64', marginBottom:24 }}/>
 
         {/* Login/Password form */}
-        <form onSubmit={handleLoginPassword} style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
           <div>
             <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Логин</label>
             <input
@@ -95,7 +94,7 @@ export default function LoginPage() {
           )}
 
           <div style={{ display:'flex', gap:10, marginTop:4 }}>
-            <button type="submit" style={{
+            <button type="button" onClick={handleLoginPassword} style={{
               flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
               border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
             }}>Войти</button>
@@ -105,7 +104,7 @@ export default function LoginPage() {
               color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
             }}>Отмена</button>
           </div>
-        </form>
+        </div>
 
         <div style={{ borderTop:'1px solid #1E3C64', marginBottom:20 }}/>
 
