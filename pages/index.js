@@ -2,10 +2,25 @@ import Layout from '../components/Layout'
 import withAuth from '../components/withAuth'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
 import { GITHUB_BASE } from '../lib/constants'
 
 function HomePage() {
+  const { data: session } = useSession()
+  const router = useRouter()
   const [stats, setStats] = useState({ participants: 0, countries: 0 })
+  const [showLoginMsg, setShowLoginMsg] = useState(false)
+
+  function requireAuth(e, href) {
+    if (!session) {
+      e.preventDefault()
+      setShowLoginMsg(true)
+      setTimeout(() => setShowLoginMsg(false), 3000)
+    } else {
+      router.push(href)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/participants').then(r => r.json()).then(data => {
@@ -33,21 +48,21 @@ function HomePage() {
 
             {/* Action buttons */}
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <Link href="/register" style={{
+              <button onClick={(e) => requireAuth(e, '/register')} style={{
                 padding:'12px 24px', borderRadius:10, background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                color:'#fff', fontWeight:700, fontSize:14, textDecoration:'none',
-                boxShadow:`0 4px 14px ${th.shadow}`,
-              }}>📝 Регистрация</Link>
-              <Link href="/participants" style={{
+                color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
+                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
+              }}>📝 Регистрация</button>
+              <button onClick={(e) => requireAuth(e, '/participants')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
-                color:th.text, fontWeight:600, fontSize:14, textDecoration:'none',
-              }}>👥 Участники</Link>
-              <Link href="/bmi" style={{
+                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+              }}>👥 Участники</button>
+              <button onClick={(e) => requireAuth(e, '/bmi')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
-                color:th.text, fontWeight:600, fontSize:14, textDecoration:'none',
-              }}>⚖️ Калькулятор BMI</Link>
+                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+              }}>⚖️ Калькулятор BMI</button>
               <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
                 padding:'12px 24px', borderRadius:10,
                 background:'linear-gradient(135deg,#229ED9,#1a7db5)',
@@ -59,6 +74,24 @@ function HomePage() {
                 Написать боту
               </a>
             </div>
+
+            {/* Login required message */}
+            {showLoginMsg && (
+              <div style={{
+                background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
+                borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
+                animation:'fadeIn 0.2s ease',
+              }}>
+                <span style={{ fontSize:18 }}>🔒</span>
+                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
+                <button onClick={() => router.push('/login')} style={{
+                  marginLeft:'auto', padding:'6px 14px', borderRadius:8,
+                  background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                  border:'none', color:'#fff', fontSize:12, fontWeight:700,
+                  cursor:'pointer', fontFamily:'inherit',
+                }}>Войти</button>
+              </div>
+            )}
 
             {/* Stat cards */}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
@@ -140,4 +173,4 @@ function HomePage() {
   )
 }
 
-export default withAuth(HomePage)
+export default HomePage
