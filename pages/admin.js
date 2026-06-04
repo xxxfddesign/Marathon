@@ -21,6 +21,11 @@ function AdminPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    const saved = localStorage.getItem('admin_logged_in')
+    if (saved === 'true') setIsLoggedIn(true)
+  }, [])
+
+  useEffect(() => {
     if (isLoggedIn) loadParticipants()
   }, [isLoggedIn, search, filter, sort])
 
@@ -41,6 +46,7 @@ function AdminPage() {
   function doLogin() {
     if (login === 'admin' && pwd === 'admin') {
       setIsLoggedIn(true)
+      localStorage.setItem('admin_logged_in', 'true')
       setError('')
     } else {
       setError('⚠ Неверный логин или пароль')
