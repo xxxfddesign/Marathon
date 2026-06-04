@@ -1,196 +1,176 @@
-import { useSession, signOut } from 'next-auth/react'
-import { useRouter } from 'next/router'
+import Layout from '../components/Layout'
+import withAuth from '../components/withAuth'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useState, useEffect } from 'react'
-import { THEMES, GITHUB_BASE, getMarathonDate } from '../lib/constants'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import { GITHUB_BASE } from '../lib/constants'
 
-function useTheme() {
-  const [theme, setThemeState] = useState('ocean')
-  useEffect(() => {
-    const saved = localStorage.getItem('ms_theme') || 'ocean'
-    setThemeState(saved)
-    document.body.setAttribute('data-theme', saved === 'ocean' ? '' : saved)
-  }, [])
-  function setTheme(t) {
-    setThemeState(t)
-    localStorage.setItem('ms_theme', t)
-    document.body.setAttribute('data-theme', t === 'ocean' ? '' : t)
-  }
-  return [theme, setTheme]
-}
-
-function Countdown({ primary }) {
-  const [t, setT] = useState({ d:'--', h:'--', m:'--', s:'--' })
-  useEffect(() => {
-    function upd() {
-      const diff = getMarathonDate() - Date.now()
-      if (diff <= 0) return
-      setT({
-        d: Math.floor(diff/86400000),
-        h: String(Math.floor((diff%86400000)/3600000)).padStart(2,'0'),
-        m: String(Math.floor((diff%3600000)/60000)).padStart(2,'0'),
-        s: String(Math.floor((diff%60000)/1000)).padStart(2,'0'),
-      })
-    }
-    upd(); const id = setInterval(upd, 1000); return () => clearInterval(id)
-  }, [])
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(255,255,255,0.04)', border:'1px solid var(--border)', borderRadius:8, padding:'4px 12px', fontSize:12 }}>
-      <span>🗓</span>
-      {['d','h','m','s'].map((k,i) => (
-        <span key={k}>
-          <span style={{ fontFamily:'Rajdhani,sans-serif', fontWeight:700, fontSize:14, color:primary, minWidth:20, display:'inline-block', textAlign:'center' }}>{t[k]}</span>
-          <span style={{ color:'var(--text-sec)', fontSize:10, marginLeft:1 }}>{['д','ч','м','с'][i]}</span>
-          {i < 3 && <span style={{ color:'var(--text-sec)', marginLeft:2 }}>:</span>}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-export default function Layout({ children }) {
+function HomePage() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [theme, setTheme] = useTheme()
-  const [showThemeModal, setShowThemeModal] = useState(false)
-  const th = THEMES[theme] || THEMES.ocean
+  const [stats, setStats] = useState({ participants: 0, countries: 0 })
+  const [showLoginMsg, setShowLoginMsg] = useState(false)
 
-  const navItems = [
-    { href:'/',             label:'Главная',     icon:'\uE80F' },
-    { href:'/register',     label:'Регистрация', icon:'\uE70F' },
-    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3' },
-    { href:'/participants', label:'Участники',   icon:'\uE716' },
-  ]
-  const mdl2 = { fontFamily:'"Segoe MDL2 Assets","Segoe UI Symbol",sans-serif', fontSize:14 }
+  function requireAuth(e, href) {
+    if (!session) {
+      e.preventDefault()
+      setShowLoginMsg(true)
+      setTimeout(() => setShowLoginMsg(false), 3000)
+    } else {
+      router.push(href)
+    }
+  }
+
+  useEffect(() => {
+    fetch('/api/participants').then(r => r.json()).then(data => {
+      if (!Array.isArray(data)) return
+      const countries = new Set(data.map(p => p.country).filter(Boolean))
+      setStats({ participants: data.length, countries: countries.size })
+    }).catch(() => {})
+  }, [])
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:th.bg, color:th.text, fontFamily:"'Inter','Segoe UI',sans-serif", transition:'background 0.4s' }}>
+    <Layout>
+      {(th) => (
+        <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
 
-      {/* TOPBAR */}
-      <nav style={{ background:th.nav, borderBottom:`1px solid ${th.border}`, display:'flex', alignItems:'center', padding:'0 20px', height:56, flexShrink:0, gap:8, zIndex:100 }}>
-
-        <Link href="/" style={{ display:'flex', alignItems:'center', gap:8, marginRight:24, textDecoration:'none' }}>
-          <img
-            src={`${GITHUB_BASE}${theme==='sunset'||theme==='forest'?'nav_logo_light':'nav_logo'}.png`}
-            style={{ height:32, width:'auto' }} alt="logo"
-            onError={e => e.target.style.display='none'}
-          />
-          <span style={{ fontFamily:'Rajdhani,sans-serif', fontSize:18, fontWeight:700, letterSpacing:1, color:th.text }}>
-            MARATHON SKILLS
-          </span>
-        </Link>
-
-        {navItems.map(item => {
-          const active = router.pathname === item.href
-          return (
-            <Link key={item.href} href={item.href} style={{
-              display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
-              fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
-              color: active ? th.primary : th.textSec,
-              borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
-              transition:'color 0.2s',
-            }}>
-              <span style={mdl2}>{item.icon}</span>
-              {item.label}
-            </Link>
-          )
-        })}
-
-        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:10 }}>
-          <Countdown primary={th.primary}/>
-
-          <span style={{ fontSize:11, color:th.textSec, fontWeight:500, letterSpacing:0.5 }}>
-            {THEMES[theme]?.name}
-          </span>
-          <button onClick={() => setShowThemeModal(true)} style={{
-            padding:'6px 12px', borderRadius:8, background:'rgba(255,255,255,0.05)',
-            border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, fontWeight:500,
-            cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
-          }}>
-            <span style={mdl2}>{'\uE790'}</span> Тема
-          </button>
-
-          <Link href="/admin" style={{ padding:'6px 14px', borderRadius:8, background:'rgba(255,255,255,0.05)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:12, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:5 }}>
-            <span style={mdl2}>{'\uE72E'}</span> Войти
-          </Link>
-
-          {session?.user ? (
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {session.user.image && (
-                <Image src={session.user.image} alt={session.user.name||''} width={32} height={32}
-                  style={{ borderRadius:'50%', border:`2px solid ${th.border}` }}/>
-              )}
-              <span style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {session.user.name}
-              </span>
-              <button onClick={() => signOut({ callbackUrl:'/login' })} style={{
-                padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
-                border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-              }}>Выйти</button>
+          {/* LEFT */}
+          <div style={{ flex:1, padding:'40px 48px', overflowY:'auto', display:'flex', flexDirection:'column', gap:24 }}>
+            <div>
+              <h1 style={{ fontFamily:'Rajdhani,sans-serif', fontSize:52, fontWeight:900, lineHeight:1.1, letterSpacing:-1 }}>
+                Марафон<br/><span style={{ color:th.primary }}>Skills 2026</span>
+              </h1>
+              <p style={{ color:th.textSec, fontSize:15, marginTop:10, maxWidth:480, lineHeight:1.6 }}>
+                Официальная система регистрации участников. Проверьте готовность, рассчитайте BMI и отслеживайте статистику.
+              </p>
             </div>
-          ) : (
-            <Link href="/login" style={{
-              padding:'6px 14px', borderRadius:8, textDecoration:'none',
-              background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-              color:'#fff', fontSize:12, fontWeight:700, letterSpacing:0.5,
-              boxShadow:`0 2px 10px ${th.shadow}`,
-              display:'flex', alignItems:'center', gap:5,
-            }}>
-              <span style={mdl2}>{'\uE72E'}</span> Войти
-            </Link>
-          )}
-        </div>
-      </nav>
 
-      {/* CONTENT */}
-      <main style={{ flex:1, overflow:'hidden', position:'relative' }}>
-        <style>{`
-          :root {
-            --bg: ${th.bg}; --nav: ${th.nav}; --card: ${th.card}; --input-bg: ${th.inputBg};
-            --primary: ${th.primary}; --primary-dk: ${th.primaryDk}; --accent: ${th.accent};
-            --text: ${th.text}; --text-sec: ${th.textSec}; --border: ${th.border};
-            --badge-bg: ${th.badgeBg}; --badge-bd: ${th.badgeBd}; --shadow: ${th.shadow};
-          }
-        `}</style>
-        {typeof children === 'function' ? children(th) : children}
-      </main>
+            {/* Action buttons */}
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+              <button onClick={(e) => requireAuth(e, '/register')} style={{
+                padding:'12px 24px', borderRadius:10, background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
+                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
+              }}>📝 Регистрация</button>
+              <button onClick={(e) => requireAuth(e, '/participants')} style={{
+                padding:'12px 24px', borderRadius:10,
+                background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
+                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+              }}>👥 Участники</button>
+              <button onClick={(e) => requireAuth(e, '/bmi')} style={{
+                padding:'12px 24px', borderRadius:10,
+                background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
+                color:th.text, fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+              }}>⚖️ Калькулятор BMI</button>
+              <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
+                padding:'12px 24px', borderRadius:10,
+                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                color:'#fff', fontWeight:700, fontSize:14, textDecoration:'none',
+                boxShadow:`0 4px 14px ${th.shadow}`,
+                display:'flex', alignItems:'center', gap:8,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.61c-.152.678-.554.843-1.122.524l-3.104-2.287-1.497 1.44c-.165.165-.304.304-.624.304l.223-3.162 5.754-5.198c.25-.223-.054-.346-.388-.123L7.08 14.766l-3.042-.95c-.661-.207-.674-.661.138-.978l11.89-4.586c.551-.2 1.033.134.496.996z"/></svg>
+                Написать боту
+              </a>
+            </div>
 
-      {/* THEME MODAL */}
-      {showThemeModal && (
-        <div onClick={() => setShowThemeModal(false)} style={{
-          position:'fixed', inset:0, zIndex:1000, background:'rgba(0,0,0,0.7)',
-          backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center'
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background:th.nav, border:`1px solid ${th.border}`, borderRadius:18,
-            padding:28, width:460, maxWidth:'95vw',
-          }}>
-            <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:22, fontWeight:700, marginBottom:20 }}>🎨 Выбор темы</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-              {Object.entries(THEMES).map(([key, t]) => (
-                <div key={key} onClick={() => { setTheme(key); setShowThemeModal(false) }} style={{
-                  border:`2px solid ${theme===key ? th.primary : th.border}`,
-                  borderRadius:14, padding:16, cursor:'pointer', position:'relative',
-                  transition:'all 0.2s',
-                }}>
-                  {theme===key && <span style={{ position:'absolute', top:8, right:10, fontSize:14, color:th.primary, fontWeight:700 }}>✓</span>}
-                  <div style={{ height:50, borderRadius:8, marginBottom:10, overflow:'hidden', background:`linear-gradient(90deg,${t.bg},${t.card})` }}>
-                    <img src={`${GITHUB_BASE}theme_${key}.png`} alt={t.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>e.target.style.display='none'}/>
-                  </div>
-                  <div style={{ fontSize:14, fontWeight:700, color:th.text }}>{t.name}</div>
+            {/* Login required message */}
+            {showLoginMsg && (
+              <div style={{
+                background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
+                borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
+                animation:'fadeIn 0.2s ease',
+              }}>
+                <span style={{ fontSize:18 }}>🔒</span>
+                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
+                <button onClick={() => router.push('/login')} style={{
+                  marginLeft:'auto', padding:'6px 14px', borderRadius:8,
+                  background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                  border:'none', color:'#fff', fontSize:12, fontWeight:700,
+                  cursor:'pointer', fontFamily:'inherit',
+                }}>Войти</button>
+              </div>
+            )}
+
+            {/* Stat cards */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+              {[
+                { icon:'👤', label:'Участников', value: stats.participants },
+                { icon:'🌍', label:'Стран', value: stats.countries },
+                { icon:'🏆', label:'Забегов', value: 8 },
+                { icon:'🏙️', label:'Городов', value: 12 },
+              ].map(s => (
+                <div key={s.label} style={{ background:th.card, border:`1px solid ${th.border}`, borderRadius:14, padding:'18px 16px', textAlign:'center' }}>
+                  <div style={{ fontSize:26 }}>{s.icon}</div>
+                  <div style={{ color:th.textSec, fontSize:11, marginTop:4, textTransform:'uppercase', letterSpacing:0.5 }}>{s.label}</div>
+                  <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:30, fontWeight:800, color:th.primary }}>{s.value}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:20 }}>
-              <button onClick={() => setShowThemeModal(false)} style={{ padding:'8px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
-                Закрыть
-              </button>
+
+            {/* Info cards */}
+            <div style={{ display:'flex', gap:12 }}>
+              {[
+                { label:'📏 Дистанция', value:'42,195', unit:'км' },
+                { label:'🥇 Рекорд', value:'2:01', unit:'ч/мин' },
+              ].map(c => (
+                <div key={c.label} style={{ flex:1, background:th.card, border:`1px solid ${th.border}`, borderRadius:14, padding:'18px 20px' }}>
+                  <div style={{ color:th.textSec, fontSize:12, marginBottom:6 }}>{c.label}</div>
+                  <div>
+                    <span style={{ fontFamily:'Rajdhani,sans-serif', fontSize:32, fontWeight:800, color:th.text }}>{c.value}</span>
+                    <span style={{ color:th.textSec, fontSize:13, marginLeft:6 }}>{c.unit}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pace badge */}
+            <div style={{ background:th.card, border:`1px solid ${th.border}`, borderRadius:14, padding:'14px 20px', display:'flex', alignItems:'center', gap:14 }}>
+              <span style={{ fontSize:28 }}>👟</span>
+              <div>
+                <div style={{ color:th.textSec, fontSize:11, textTransform:'uppercase', letterSpacing:0.5 }}>Средний результат</div>
+                <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:22, fontWeight:700, color:th.primary }}>4:32 мин/км</div>
+              </div>
+            </div>
+
+            {/* Quote */}
+            <div style={{ background:`rgba(255,255,255,0.03)`, border:`1px solid ${th.border}`, borderRadius:14, padding:'16px 20px', color:th.textSec, fontSize:13, lineHeight:1.7, fontStyle:'italic' }}>
+              Примерно на <strong style={{ color:th.text }}>30–35 километре</strong> многие бегуны сталкиваются с явлением, которое называют «стеной».
+              В этот момент запасы гликогена в мышцах истощаются. Преодоление этого барьера — это уже не вопрос физики, а вопрос чистого упрямства и силы духа.
+            </div>
+          </div>
+
+          {/* RIGHT */}
+          <div style={{ width:440, position:'relative', flexShrink:0 }}>
+            <img src={`${GITHUB_BASE}marathon_hero.png`} alt="hero" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', opacity:0.55 }} onError={e=>e.target.style.display='none'}/>
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(8,19,32,0.8), transparent)' }}/>
+            <div style={{ position:'relative', zIndex:1, padding:32, height:'100%', display:'flex', flexDirection:'column', justifyContent:'space-between' }}>
+              <div style={{ background:'rgba(0,0,0,0.4)', backdropFilter:'blur(10px)', border:`1px solid ${th.border}`, borderRadius:14, padding:'16px 20px', textAlign:'center' }}>
+                <div style={{ fontSize:11, color:th.textSec, textTransform:'uppercase', letterSpacing:1, marginBottom:6 }}>🗓 Дата марафона</div>
+                <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:26, fontWeight:800, color:th.primary }}>15 ИЮНЯ 2026</div>
+              </div>
+              <div style={{ background:'rgba(0,0,0,0.4)', backdropFilter:'blur(10px)', border:`1px solid ${th.border}`, borderRadius:14, padding:'20px' }}>
+                {[
+                  { icon:'🥇', label:'Медали', value:'Gold' },
+                  { icon:'🌡️', label:'Температура', value:'+18°C' },
+                  { icon:'💨', label:'Ветер', value:'12 км/ч' },
+                ].map(w => (
+                  <div key={w.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:`1px solid rgba(255,255,255,0.07)` }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <span>{w.icon}</span>
+                      <span style={{ color:th.textSec, fontSize:13 }}>{w.label}</span>
+                    </div>
+                    <span style={{ fontWeight:700, color:th.text }}>{w.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   )
 }
+
+export default HomePage
