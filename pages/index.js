@@ -48,6 +48,16 @@ function HomePage() {
                 background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`,
                 color:th.text, fontWeight:600, fontSize:14, textDecoration:'none',
               }}>⚖️ Калькулятор BMI</Link>
+              <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
+                padding:'12px 24px', borderRadius:10,
+                background:'linear-gradient(135deg,#229ED9,#1a7db5)',
+                color:'#fff', fontWeight:700, fontSize:14, textDecoration:'none',
+                boxShadow:'0 4px 14px rgba(34,158,217,0.35)',
+                display:'flex', alignItems:'center', gap:8,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.61c-.152.678-.554.843-1.122.524l-3.104-2.287-1.497 1.44c-.165.165-.304.304-.624.304l.223-3.162 5.754-5.198c.25-.223-.054-.346-.388-.123L7.08 14.766l-3.042-.95c-.661-.207-.674-.661.138-.978l11.89-4.586c.551-.2 1.033.134.496.996z"/></svg>
+                Написать боту
+              </a>
             </div>
 
             {/* Stat cards */}
