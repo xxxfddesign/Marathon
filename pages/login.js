@@ -1,11 +1,14 @@
 import { signIn, useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { GITHUB_BASE } from '../lib/constants'
 
 export default function LoginPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [login, setLogin] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (status === 'authenticated') router.replace('/')
@@ -17,6 +20,16 @@ export default function LoginPage() {
     </div>
   )
 
+  function handleLoginPassword(e) {
+    e.preventDefault()
+    if (login === 'admin' && password === 'admin') {
+      router.push('/')
+    } else {
+      setError('Неверный логин или пароль')
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
   return (
     <div style={{
       minHeight:'100vh', background:'#081320', display:'flex', alignItems:'center',
@@ -27,11 +40,11 @@ export default function LoginPage() {
 
       <div style={{
         background:'#06121A', border:'1px solid #1E3C64', borderRadius:20,
-        padding:'48px 40px', width:400, maxWidth:'90vw', position:'relative', zIndex:1,
+        padding:'48px 40px', width:420, maxWidth:'90vw', position:'relative', zIndex:1,
         boxShadow:'0 20px 60px rgba(0,0,0,0.5)',
       }}>
         {/* Logo */}
-        <div style={{ textAlign:'center', marginBottom:32 }}>
+        <div style={{ textAlign:'center', marginBottom:28 }}>
           <img src={`${GITHUB_BASE}nav_logo.png`} alt="logo" style={{ height:48, marginBottom:12 }} onError={e=>e.target.style.display='none'}/>
           <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:26, fontWeight:700, color:'#fff', letterSpacing:1 }}>
             MARATHON SKILLS
@@ -41,11 +54,62 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* divider */}
-        <div style={{ borderTop:'1px solid #1E3C64', marginBottom:28 }}/>
+        <div style={{ borderTop:'1px solid #1E3C64', marginBottom:24 }}/>
 
-        <div style={{ textAlign:'center', color:'#C9D4E5', fontSize:14, marginBottom:24, fontWeight:500 }}>
-          Войдите, чтобы продолжить
+        {/* Login/Password form */}
+        <form onSubmit={handleLoginPassword} style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
+          <div>
+            <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Логин</label>
+            <input
+              type="text"
+              value={login}
+              onChange={e => setLogin(e.target.value)}
+              placeholder="Введите логин"
+              style={{
+                width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
+                background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+                color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Пароль</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Введите пароль"
+              style={{
+                width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
+                background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+                color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+              }}
+            />
+          </div>
+
+          {error && (
+            <div style={{ color:'#FF4860', fontSize:13, textAlign:'center', padding:'8px', background:'rgba(255,72,96,0.1)', borderRadius:8, border:'1px solid rgba(255,72,96,0.25)' }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display:'flex', gap:10, marginTop:4 }}>
+            <button type="submit" style={{
+              flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
+              border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+            }}>Войти</button>
+            <button type="button" onClick={() => router.push('/')} style={{
+              flex:1, padding:'12px', borderRadius:10,
+              background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+              color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+            }}>Отмена</button>
+          </div>
+        </form>
+
+        <div style={{ borderTop:'1px solid #1E3C64', marginBottom:20 }}/>
+
+        <div style={{ textAlign:'center', color:'#C9D4E5', fontSize:13, marginBottom:16, fontWeight:500 }}>
+          или войдите через Google
         </div>
 
         {/* Google button */}
@@ -56,12 +120,9 @@ export default function LoginPage() {
             background:'#fff', border:'none', cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:12,
             fontSize:15, fontWeight:600, color:'#1a1a2e', fontFamily:'inherit',
-            boxShadow:'0 4px 16px rgba(0,0,0,0.3)', transition:'transform 0.15s, box-shadow 0.15s',
+            boxShadow:'0 4px 16px rgba(0,0,0,0.3)',
           }}
-          onMouseEnter={e => { e.target.style.transform='translateY(-2px)'; e.target.style.boxShadow='0 8px 24px rgba(0,0,0,0.4)' }}
-          onMouseLeave={e => { e.target.style.transform='translateY(0)'; e.target.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)' }}
         >
-          {/* Google SVG icon */}
           <svg width="20" height="20" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -72,14 +133,9 @@ export default function LoginPage() {
           Войти через Google
         </button>
 
-        <div style={{ textAlign:'center', marginTop:24, color:'#C9D4E5', fontSize:12, lineHeight:1.6 }}>
-          Авторизация через Google OAuth 2.0.<br/>
-          Данные защищены и не передаются третьим лицам.
-        </div>
-
         {/* Marathon date badge */}
         <div style={{
-          marginTop:28, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
+          marginTop:24, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
           borderRadius:10, padding:'10px 16px', textAlign:'center',
         }}>
           <div style={{ fontSize:11, color:'#C9D4E5', textTransform:'uppercase', letterSpacing:1, marginBottom:3 }}>🗓 Дата марафона</div>
