@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       email: b.email, phone: b.phone, country: b.country,
       birth_date: b.birth_date, gender: b.gender,
       role: b.role || 'Runner', bmi: b.bmi, bmi_category: b.bmi_category,
+      login: b.login || null, password: b.password || null,
     }]).select().single()
     if (error) return res.status(500).json({ error: error.message })
     return res.status(201).json(data)
