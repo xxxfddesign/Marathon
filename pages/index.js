@@ -26,8 +26,6 @@ function HomePage() {
       router.push(href)
     }
   }
-    }
-  }
 
   useEffect(() => {
     fetch('/api/participants').then(r => r.json()).then(data => {
@@ -55,23 +53,32 @@ function HomePage() {
 
             {/* Action buttons */}
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <button onClick={(e) => requireAuth(e, '/register')} style={{
+              <button onClick={() => router.push('/register')} style={{
                 padding:'12px 24px', borderRadius:10, background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
-                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
-              }}>📝 Регистрация</button>
+                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit', transition:'opacity 0.2s',
+              }}
+              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
+              >📝 Регистрация</button>
               <button onClick={(e) => requireAuth(e, '/participants')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
-              }}>👥 Участники</button>
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`, transition:'opacity 0.2s',
+              }}
+              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
+              >👥 Участники</button>
               <button onClick={(e) => requireAuth(e, '/bmi')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
-              }}>⚖️ Калькулятор BMI</button>
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`, transition:'opacity 0.2s',
+              }}
+              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
+              >⚖️ Калькулятор BMI</button>
               <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
