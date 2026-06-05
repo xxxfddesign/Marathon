@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 export const config = { api: { bodyParser: true } }
 
 const BOT_NAME = 'Marathon Skills 2026'
-const SITE = 'marathon-skills.vercel.app'
+const SITE = 'marathon-sepia-five.vercel.app'
 
 async function sendMessage(chatId, text, extra = {}) {
   const token = process.env.TELEGRAM_BOT_TOKEN
