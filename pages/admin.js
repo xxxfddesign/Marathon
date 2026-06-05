@@ -48,7 +48,6 @@ function AdminPage() {
     if (login === 'admin' && pwd === 'admin') {
       setIsLoggedIn(true)
       localStorage.setItem('admin_logged_in', 'true')
-      localStorage.setItem('participant_name', 'Admin')
       setError('')
     } else {
       setError('⚠ Неверный логин или пароль')
@@ -187,7 +186,7 @@ function AdminPage() {
         <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
           <div style={{ padding:'20px 32px 0', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <h2 style={{ fontFamily:'Rajdhani,sans-serif', fontSize:28, fontWeight:800, color:th.primary }}>👑 Панель администратора</h2>
-            <button onClick={() => { setIsLoggedIn(false); localStorage.removeItem('admin_logged_in'); localStorage.removeItem('participant_name') }} style={{ padding:'7px 16px', borderRadius:8, background:'rgba(255,72,96,0.1)', border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Logout</button>
+            <button onClick={() => { setIsLoggedIn(false); localStorage.removeItem('admin_logged_in') }} style={{ padding:'7px 16px', borderRadius:8, background:'rgba(255,72,96,0.1)', border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Logout</button>
           </div>
 
           <div style={{ padding:'14px 32px', display:'flex', gap:10, flexShrink:0, flexWrap:'wrap' }}>

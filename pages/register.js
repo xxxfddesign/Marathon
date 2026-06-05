@@ -23,7 +23,7 @@ function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({
     first_name:'', last_name:'', email:'', phone:'', birth_date:'1990-01-01',
-    country:'Казахстан', gender:'m', login:'', password:'', password2:'',
+    country:'Казахстан', gender:'m', password:'', password2:'',
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -41,7 +41,6 @@ function RegisterPage() {
     if (!form.phone.trim()) e.phone = 'Введите телефон'
     if (!form.birth_date) e.birth_date = 'Укажите дату'
     if (!form.country) e.country = 'Выберите страну'
-    if (!form.login.trim() || form.login.trim().length < 3) e.login = 'Минимум 3 символа'
     if (form.password.length < 6) e.password = 'Минимум 6 символов'
     if (form.password !== form.password2) e.password2 = 'Пароли не совпадают'
     return e
@@ -63,8 +62,6 @@ function RegisterPage() {
         role: 'Runner',
         bmi: bmiData?.bmi || null,
         bmi_category: bmiData?.category || null,
-        login: form.login.trim(),
-        password: form.password,
       }
       const res = await fetch('/api/participants', {
         method: 'POST',
@@ -72,9 +69,6 @@ function RegisterPage() {
         body: JSON.stringify(body),
       })
       if (res.ok) {
-        const saved = await res.json()
-        localStorage.setItem('participant_id', String(saved.id))
-        localStorage.setItem('participant_name', `${saved.first_name} ${saved.last_name}`)
         setSuccess(true)
         setTimeout(() => router.push('/participants'), 2000)
       } else {
@@ -146,8 +140,6 @@ function RegisterPage() {
                   ))}
                 </div>
               </div>
-
-              <Input label="Логин" value={form.login} onChange={e=>set('login',e.target.value)} placeholder="Придумайте логин (мин. 3 символа)" error={errors.login}/>
 
               <Input label="Пароль" type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Минимум 6 символов" error={errors.password}/>
               {form.password.length > 0 && (

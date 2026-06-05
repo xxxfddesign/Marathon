@@ -9,15 +9,10 @@ export default function LoginPage() {
   const [login, setLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
+  // Если уже залогинен через Google — на главную
   useEffect(() => {
     if (status === 'authenticated') router.replace('/')
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('participant_id') || localStorage.getItem('admin_logged_in')) {
-        router.replace('/')
-      }
-    }
   }, [status, router])
 
   if (status === 'loading') return (
@@ -26,150 +21,105 @@ export default function LoginPage() {
     </div>
   )
 
-  async function handleLogin() {
-    if (!login.trim() || !password.trim()) {
-      setError('Введите логин и пароль')
-      setTimeout(() => setError(''), 3000)
-      return
-    }
-    // Админ
-    if (login.trim() === 'admin' && password === 'admin') {
+  function handleLoginPassword() {
+    if (login === 'admin' && password === 'admin') {
       localStorage.setItem('admin_logged_in', 'true')
-      localStorage.setItem('participant_name', 'Администратор')
-      router.push('/')
-      return
-    }
-    // Участник
-    setLoading(true)
-    try {
-      const res = await fetch('/api/auth/participant-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login: login.trim(), password }),
-      })
-      const d = await res.json()
-      if (res.ok && d.id) {
-        localStorage.setItem('participant_id', String(d.id))
-        localStorage.setItem('participant_name', `${d.first_name} ${d.last_name}`)
-        router.push('/')
-      } else {
-        setError(d.error || 'Неверный логин или пароль')
-        setTimeout(() => setError(''), 3000)
-      }
-    } catch {
-      setError('Ошибка сети')
+      router.push('/admin')
+    } else {
+      setError('Неверный логин или пароль')
       setTimeout(() => setError(''), 3000)
     }
-    setLoading(false)
-  }
-
-  const inputStyle = {
-    width: '100%', padding: '12px 14px', borderRadius: 10, boxSizing: 'border-box',
-    background: 'rgba(255,255,255,0.05)', border: '1px solid #1E3C64',
-    color: '#fff', fontSize: 14, fontFamily: 'inherit', outline: 'none',
-    transition: 'border-color 0.2s',
   }
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#081320', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', fontFamily: "'Inter',sans-serif", position: 'relative', overflow: 'hidden',
+      minHeight:'100vh', background:'#081320', display:'flex', alignItems:'center',
+      justifyContent:'center', fontFamily:"'Inter',sans-serif", position:'relative', overflow:'hidden',
     }}>
       <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle,rgba(0,114,255,0.12),transparent 70%)', top:'50%', left:'50%', transform:'translate(-50%,-50%)', pointerEvents:'none' }}/>
 
       <div style={{
-        background: '#06121A', border: '1px solid #1E3C64', borderRadius: 20,
-        padding: '48px 40px', width: 420, maxWidth: '90vw', position: 'relative', zIndex: 1,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+        background:'#06121A', border:'1px solid #1E3C64', borderRadius:20,
+        padding:'48px 40px', width:420, maxWidth:'90vw', position:'relative', zIndex:1,
+        boxShadow:'0 20px 60px rgba(0,0,0,0.5)',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <img src={`${GITHUB_BASE}nav_logo.png`} alt="logo" style={{ height: 48, marginBottom: 12 }} onError={e => e.target.style.display='none'}/>
-          <div style={{ fontFamily: 'Rajdhani,sans-serif', fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>
+        <div style={{ textAlign:'center', marginBottom:28 }}>
+          <img src={`${GITHUB_BASE}nav_logo.png`} alt="logo" style={{ height:48, marginBottom:12 }} onError={e=>e.target.style.display='none'}/>
+          <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:26, fontWeight:700, color:'#fff', letterSpacing:1 }}>
             MARATHON SKILLS
           </div>
-          <div style={{ color: '#C9D4E5', fontSize: 13, marginTop: 6 }}>
-            Вход в систему
+          <div style={{ color:'#C9D4E5', fontSize:13, marginTop:6 }}>
+            Официальная система регистрации участников
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #1E3C64', marginBottom: 24 }}/>
+        <div style={{ borderTop:'1px solid #1E3C64', marginBottom:24 }}/>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:20 }}>
           <div>
-            <label style={{ color: '#C9D4E5', fontSize: 12, marginBottom: 6, display: 'block' }}>Логин</label>
+            <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Логин</label>
             <input
-              type="text" value={login}
+              type="text"
+              value={login}
               onChange={e => setLogin(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Введите логин"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor='#00C6FF'}
-              onBlur={e => e.target.style.borderColor='#1E3C64'}
+              style={{
+                width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
+                background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+                color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+              }}
             />
           </div>
           <div>
-            <label style={{ color: '#C9D4E5', fontSize: 12, marginBottom: 6, display: 'block' }}>Пароль</label>
+            <label style={{ color:'#C9D4E5', fontSize:12, marginBottom:6, display:'block' }}>Пароль</label>
             <input
-              type="password" value={password}
+              type="password"
+              value={password}
               onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && handleLoginPassword()}
               placeholder="Введите пароль"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor='#00C6FF'}
-              onBlur={e => e.target.style.borderColor='#1E3C64'}
+              style={{
+                width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
+                background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+                color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+              }}
             />
           </div>
 
           {error && (
-            <div style={{ color: '#FF4860', fontSize: 13, textAlign: 'center', padding: '8px', background: 'rgba(255,72,96,0.1)', borderRadius: 8, border: '1px solid rgba(255,72,96,0.25)' }}>
+            <div style={{ color:'#FF4860', fontSize:13, textAlign:'center', padding:'8px', background:'rgba(255,72,96,0.1)', borderRadius:8, border:'1px solid rgba(255,72,96,0.25)' }}>
               {error}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button
-              type="button" onClick={handleLogin} disabled={loading}
-              style={{
-                flex: 1, padding: '12px', borderRadius: 10,
-                background: 'linear-gradient(135deg,#0072FF,#00C6FF)',
-                border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
-                cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s, transform 0.1s',
-              }}
-              onMouseEnter={e => { if (!loading) e.target.style.opacity='0.85' }}
-              onMouseLeave={e => { e.target.style.opacity= loading ? '0.7' : '1' }}
-            >{loading ? 'Вход...' : 'Войти'}</button>
-            <button
-              type="button" onClick={() => router.push('/')}
-              style={{
-                flex: 1, padding: '12px', borderRadius: 10,
-                background: 'rgba(255,255,255,0.05)', border: '1px solid #1E3C64',
-                color: '#C9D4E5', fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'background 0.2s, border-color 0.2s',
-              }}
-              onMouseEnter={e => { e.target.style.background='rgba(255,255,255,0.1)'; e.target.style.borderColor='#00C6FF' }}
-              onMouseLeave={e => { e.target.style.background='rgba(255,255,255,0.05)'; e.target.style.borderColor='#1E3C64' }}
-            >Отмена</button>
+          <div style={{ display:'flex', gap:10, marginTop:4 }}>
+            <button type="button" onClick={handleLoginPassword} style={{
+              flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
+              border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+            }}>Login</button>
+            <button type="button" onClick={() => router.push('/')} style={{
+              flex:1, padding:'12px', borderRadius:10,
+              background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+              color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+            }}>Cancel</button>
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #1E3C64', marginBottom: 20 }}/>
+        <div style={{ borderTop:'1px solid #1E3C64', marginBottom:20 }}/>
 
-        <div style={{ textAlign: 'center', color: '#C9D4E5', fontSize: 13, marginBottom: 16, fontWeight: 500 }}>
+        <div style={{ textAlign:'center', color:'#C9D4E5', fontSize:13, marginBottom:16, fontWeight:500 }}>
           или войдите через Google
         </div>
 
         <button
-          onClick={() => signIn('google', { callbackUrl: '/' }, { prompt: 'select_account' })}
+          onClick={() => signIn('google', { callbackUrl: '/' })}
           style={{
-            width: '100%', padding: '14px 20px', borderRadius: 12,
-            background: '#fff', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-            fontSize: 15, fontWeight: 600, color: '#1a1a2e', fontFamily: 'inherit',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.3)', transition: 'box-shadow 0.2s, transform 0.1s',
+            width:'100%', padding:'14px 20px', borderRadius:12,
+            background:'#fff', border:'none', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:12,
+            fontSize:15, fontWeight:600, color:'#1a1a2e', fontFamily:'inherit',
+            boxShadow:'0 4px 16px rgba(0,0,0,0.3)',
           }}
-          onMouseEnter={e => { e.currentTarget.style.boxShadow='0 6px 20px rgba(0,0,0,0.4)'; e.currentTarget.style.transform='translateY(-1px)' }}
-          onMouseLeave={e => { e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)'; e.currentTarget.style.transform='translateY(0)' }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -181,11 +131,12 @@ export default function LoginPage() {
           Войти через Google
         </button>
 
-        <div style={{ marginTop: 20, textAlign: 'center', color: '#C9D4E5', fontSize: 12 }}>
-          Нет аккаунта?{' '}
-          <span onClick={() => router.push('/register')} style={{ color: '#00C6FF', cursor: 'pointer', fontWeight: 600 }}>
-            Зарегистрироваться
-          </span>
+        <div style={{
+          marginTop:24, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
+          borderRadius:10, padding:'10px 16px', textAlign:'center',
+        }}>
+          <div style={{ fontSize:11, color:'#C9D4E5', textTransform:'uppercase', letterSpacing:1, marginBottom:3 }}>🗓 Дата марафона</div>
+          <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:20, fontWeight:700, color:'#00C6FF' }}>15 ИЮНЯ 2026</div>
         </div>
       </div>
     </div>
