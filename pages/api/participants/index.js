@@ -26,8 +26,6 @@ function HomePage() {
       router.push(href)
     }
   }
-    }
-  }
 
   useEffect(() => {
     fetch('/api/participants').then(r => r.json()).then(data => {
