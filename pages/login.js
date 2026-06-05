@@ -10,10 +10,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Если уже залогинен через Google — на главную
   useEffect(() => {
     if (status === 'authenticated') router.replace('/')
   }, [status, router])
+
+  // Проверяем localStorage — может уже залогинен как участник
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pid = localStorage.getItem('participant_id')
+      if (pid) router.replace('/')
+    }
+  }, [router])
 
   if (status === 'loading') return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#081320' }}>
@@ -21,12 +28,36 @@ export default function LoginPage() {
     </div>
   )
 
-  function handleLoginPassword() {
+  async function handleLoginPassword() {
+    if (!login.trim() || !password.trim()) {
+      setError('Введите логин и пароль')
+      setTimeout(() => setError(''), 3000)
+      return
+    }
+    // Проверяем admin
     if (login === 'admin' && password === 'admin') {
       localStorage.setItem('admin_logged_in', 'true')
       router.push('/admin')
-    } else {
-      setError('Неверный логин или пароль')
+      return
+    }
+    // Проверяем участника по логину/паролю
+    try {
+      const res = await fetch('/api/auth/participant-login', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ login: login.trim(), password: password.trim() }),
+      })
+      const d = await res.json()
+      if (res.ok && d.id) {
+        localStorage.setItem('participant_id', String(d.id))
+        localStorage.setItem('participant_name', `${d.first_name} ${d.last_name}`)
+        router.push('/')
+      } else {
+        setError(d.error || 'Неверный логин или пароль')
+        setTimeout(() => setError(''), 3000)
+      }
+    } catch {
+      setError('Ошибка сети')
       setTimeout(() => setError(''), 3000)
     }
   }
@@ -96,12 +127,12 @@ export default function LoginPage() {
             <button type="button" onClick={handleLoginPassword} style={{
               flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
               border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-            }}>Login</button>
+            }}>Войти</button>
             <button type="button" onClick={() => router.push('/')} style={{
               flex:1, padding:'12px', borderRadius:10,
               background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
               color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-            }}>Cancel</button>
+            }}>Отмена</button>
           </div>
         </div>
 
@@ -112,7 +143,7 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => signIn('google', { callbackUrl: '/' })}
+          onClick={() => signIn('google', { callbackUrl: '/', prompt: 'select_account' })}
           style={{
             width:'100%', padding:'14px 20px', borderRadius:12,
             background:'#fff', border:'none', cursor:'pointer',
@@ -131,12 +162,14 @@ export default function LoginPage() {
           Войти через Google
         </button>
 
-        <div style={{
-          marginTop:24, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
-          borderRadius:10, padding:'10px 16px', textAlign:'center',
-        }}>
-          <div style={{ fontSize:11, color:'#C9D4E5', textTransform:'uppercase', letterSpacing:1, marginBottom:3 }}>🗓 Дата марафона</div>
-          <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:20, fontWeight:700, color:'#00C6FF' }}>15 ИЮНЯ 2026</div>
+        <div style={{ marginTop:20, textAlign:'center', color:'#C9D4E5', fontSize:12 }}>
+          Нет аккаунта?{' '}
+          <span
+            onClick={() => router.push('/register')}
+            style={{ color:'#00C6FF', cursor:'pointer', fontWeight:600 }}
+          >
+            Зарегистрироваться
+          </span>
         </div>
       </div>
     </div>
