@@ -1,5 +1,4 @@
 import Layout from '../components/Layout'
-import withAuth from '../components/withAuth'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -11,14 +10,22 @@ function HomePage() {
   const router = useRouter()
   const [stats, setStats] = useState({ participants: 0, countries: 0 })
   const [showLoginMsg, setShowLoginMsg] = useState(false)
+  const [isAuth, setIsAuth] = useState(false)
+
+  useEffect(() => {
+    const pid = localStorage.getItem('participant_id')
+    setIsAuth(!!session || !!pid)
+  }, [session])
 
   function requireAuth(e, href) {
-    if (!session) {
+    if (!isAuth) {
       e.preventDefault()
       setShowLoginMsg(true)
-      setTimeout(() => setShowLoginMsg(false), 3000)
+      setTimeout(() => setShowLoginMsg(false), 4000)
     } else {
       router.push(href)
+    }
+  }
     }
   }
 
@@ -80,13 +87,20 @@ function HomePage() {
             {/* Login required message */}
             {showLoginMsg && (
               <div style={{
-                background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
-                borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
-                animation:'fadeIn 0.2s ease',
+                background:'rgba(255,72,96,0.10)', border:'1px solid rgba(255,72,96,0.35)',
+                borderRadius:12, padding:'14px 20px', display:'flex', alignItems:'center', gap:12,
               }}>
-                <span style={{ fontSize:18 }}>🔒</span>
-                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
-  
+                <span style={{ fontSize:22 }}>🔒</span>
+                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>
+                  Сначала{' '}
+                  <Link href="/register" style={{ color:'#00C6FF', textDecoration:'underline', fontWeight:700 }}>
+                    зарегистрируйтесь
+                  </Link>
+                  {' '}или{' '}
+                  <Link href="/login" style={{ color:'#00C6FF', textDecoration:'underline', fontWeight:700 }}>
+                    войдите
+                  </Link>
+                </span>
               </div>
             )}
 
