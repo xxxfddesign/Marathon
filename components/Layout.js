@@ -55,12 +55,24 @@ export default function Layout({ children }) {
   const [theme, setTheme] = useTheme()
   const [showThemeModal, setShowThemeModal] = useState(false)
   const th = THEMES[theme] || THEMES.ocean
+  const [participantName, setParticipantName] = useState(null)
+  const [isAuth, setIsAuth] = useState(false)
+  const [showNavToast, setShowNavToast] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const name = localStorage.getItem('participant_name')
+      const pid = localStorage.getItem('participant_id')
+      if (name && pid) setParticipantName(name)
+      setIsAuth(!!(pid || session))
+    }
+  }, [session])
 
   const navItems = [
-    { href:'/',             label:'Главная',     icon:'\uE80F' },
-    { href:'/register',     label:'Регистрация', icon:'\uE70F' },
-    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3' },
-    { href:'/participants', label:'Участники',   icon:'\uE716' },
+    { href:'/',             label:'Главная',     icon:'\uE80F', protected: false },
+    { href:'/register',     label:'Регистрация', icon:'\uE70F', protected: false },
+    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3', protected: true  },
+    { href:'/participants', label:'Участники',   icon:'\uE716', protected: true  },
   ]
   const mdl2 = { fontFamily:'"Segoe MDL2 Assets","Segoe UI Symbol",sans-serif', fontSize:14 }
 
@@ -83,6 +95,22 @@ export default function Layout({ children }) {
 
         {navItems.map(item => {
           const active = router.pathname === item.href
+          if (item.protected && !isAuth) {
+            return (
+              <button key={item.href} onClick={() => {
+                setShowNavToast(true)
+                setTimeout(() => setShowNavToast(false), 4000)
+              }} style={{
+                display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
+                fontSize:13, fontWeight:600, letterSpacing:0.3,
+                color: th.textSec, background:'none', border:'none', cursor:'pointer',
+                borderBottom:'2px solid transparent', fontFamily:'inherit', opacity:0.6,
+              }}>
+                <span style={mdl2}>{item.icon}</span>
+                {item.label}
+              </button>
+            )
+          }
           return (
             <Link key={item.href} href={item.href} style={{
               display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
@@ -127,6 +155,28 @@ export default function Layout({ children }) {
                 fontWeight:600, cursor:'pointer', fontFamily:'inherit',
               }}>Выйти</button>
             </div>
+          ) : participantName ? (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{
+                width:32, height:32, borderRadius:'50%',
+                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:14, fontWeight:700, color:'#fff', flexShrink:0,
+              }}>{participantName.charAt(0).toUpperCase()}</div>
+              <Link href="/profile" style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}>
+                {participantName}
+              </Link>
+              <button onClick={() => {
+                localStorage.removeItem('participant_id')
+                localStorage.removeItem('participant_name')
+                setParticipantName(null)
+                router.push('/')
+              }} style={{
+                padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
+                border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
+                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+              }}>Выйти</button>
+            </div>
           ) : (
             <Link href="/login" style={{
               padding:'6px 14px', borderRadius:8, textDecoration:'none',
@@ -153,6 +203,29 @@ export default function Layout({ children }) {
         `}</style>
         {typeof children === 'function' ? children(th) : children}
       </main>
+
+      {/* NAV AUTH TOAST */}
+      {showNavToast && (
+        <div style={{
+          position:'fixed', top:70, left:'50%', transform:'translateX(-50%)',
+          zIndex:2000, background:'#0d1f30', border:'1px solid rgba(255,72,96,0.45)',
+          borderRadius:12, padding:'14px 24px', boxShadow:'0 8px 32px rgba(0,0,0,0.6)',
+          display:'flex', alignItems:'center', gap:12, whiteSpace:'nowrap',
+          animation:'slideDown 0.25s ease',
+        }}>
+          <span style={{ fontSize:20 }}>🔒</span>
+          <span style={{ color:'#fff', fontSize:14 }}>
+            Сначала{' '}
+            <Link href="/register" onClick={() => setShowNavToast(false)} style={{ color:th.primary, textDecoration:'underline', fontWeight:700 }}>
+              зарегистрируйтесь
+            </Link>
+            {' '}или{' '}
+            <Link href="/login" onClick={() => setShowNavToast(false)} style={{ color:th.primary, textDecoration:'underline', fontWeight:700 }}>
+              войдите
+            </Link>
+          </span>
+        </div>
+      )}
 
       {/* THEME MODAL */}
       {showThemeModal && (
