@@ -61,10 +61,13 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const name = localStorage.getItem('participant_name')
       const pid = localStorage.getItem('participant_id')
-      if (name && pid) setParticipantName(name)
-      setIsAuth(!!(pid || session))
+      const admin = localStorage.getItem('admin_logged_in')
+      const name = localStorage.getItem('participant_name')
+      const auth = !!(pid || admin || session)
+      setIsAuth(auth)
+      if (auth && name) setParticipantName(name)
+      else if (session?.user?.name) setParticipantName(session.user.name)
     }
   }, [session])
 
@@ -112,13 +115,17 @@ export default function Layout({ children }) {
             )
           }
           return (
-            <Link key={item.href} href={item.href} style={{
-              display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
-              fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
-              color: active ? th.primary : th.textSec,
-              borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
-              transition:'color 0.2s',
-            }}>
+            <Link key={item.href} href={item.href}
+              style={{
+                display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
+                fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
+                color: active ? th.primary : th.textSec,
+                borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
+                transition:'color 0.2s, background 0.2s',
+              }}
+              onMouseEnter={e=>{if(!active){e.currentTarget.style.color=th.primary;e.currentTarget.style.background='rgba(255,255,255,0.05)'}}}
+              onMouseLeave={e=>{if(!active){e.currentTarget.style.color=th.textSec;e.currentTarget.style.background='transparent'}}}
+            >
               <span style={mdl2}>{item.icon}</span>
               {item.label}
             </Link>
@@ -135,27 +142,36 @@ export default function Layout({ children }) {
             padding:'6px 12px', borderRadius:8, background:'rgba(255,255,255,0.05)',
             border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, fontWeight:500,
             cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
-          }}>
+            transition:'background 0.2s, border-color 0.2s',
+          }}
+          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.borderColor=th.primary}}
+          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.borderColor=th.border}}
+          >
             <span style={mdl2}>{'\uE790'}</span> Тема
           </button>
 
 
           {session?.user ? (
+            /* Вошёл через Google */
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {session.user.image && (
                 <Image src={session.user.image} alt={session.user.name||''} width={32} height={32}
                   style={{ borderRadius:'50%', border:`2px solid ${th.border}` }}/>
               )}
-              <span style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              <Link href="/profile" style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}>
                 {session.user.name}
-              </span>
-              <button onClick={() => signOut({ callbackUrl:'/login' })} style={{
+              </Link>
+              <button onClick={() => { signOut({ callbackUrl:'/login' }) }} style={{
                 padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
                 border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-              }}>Выйти</button>
+                fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'background 0.2s',
+              }}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,72,96,0.22)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,72,96,0.1)'}
+              >Выйти</button>
             </div>
           ) : participantName ? (
+            /* Вошёл по логину/паролю или как админ */
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <div style={{
                 width:32, height:32, borderRadius:'50%',
@@ -163,28 +179,38 @@ export default function Layout({ children }) {
                 display:'flex', alignItems:'center', justifyContent:'center',
                 fontSize:14, fontWeight:700, color:'#fff', flexShrink:0,
               }}>{participantName.charAt(0).toUpperCase()}</div>
-              <Link href="/profile" style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}>
-                {participantName}
-              </Link>
+              <Link
+                href={localStorage.getItem('admin_logged_in') ? '/admin' : '/profile'}
+                style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}
+              >{participantName}</Link>
               <button onClick={() => {
                 localStorage.removeItem('participant_id')
                 localStorage.removeItem('participant_name')
+                localStorage.removeItem('admin_logged_in')
                 setParticipantName(null)
+                setIsAuth(false)
                 router.push('/')
               }} style={{
                 padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
                 border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-              }}>Выйти</button>
+                fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'background 0.2s',
+              }}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,72,96,0.22)'}
+              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,72,96,0.1)'}
+              >Выйти</button>
             </div>
           ) : (
+            /* Не вошёл */
             <Link href="/login" style={{
               padding:'6px 14px', borderRadius:8, textDecoration:'none',
               background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
               color:'#fff', fontSize:12, fontWeight:700, letterSpacing:0.5,
               boxShadow:`0 2px 10px ${th.shadow}`,
-              display:'flex', alignItems:'center', gap:5,
-            }}>
+              display:'flex', alignItems:'center', gap:5, transition:'opacity 0.2s',
+            }}
+            onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+            onMouseLeave={e=>e.currentTarget.style.opacity='1'}
+            >
               <span style={mdl2}>{'\uE72E'}</span> Войти
             </Link>
           )}
