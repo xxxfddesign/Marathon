@@ -55,27 +55,12 @@ export default function Layout({ children }) {
   const [theme, setTheme] = useTheme()
   const [showThemeModal, setShowThemeModal] = useState(false)
   const th = THEMES[theme] || THEMES.ocean
-  const [participantName, setParticipantName] = useState(null)
-  const [isAuth, setIsAuth] = useState(false)
-  const [showNavToast, setShowNavToast] = useState(false)
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const pid = localStorage.getItem('participant_id')
-      const admin = localStorage.getItem('admin_logged_in')
-      const name = localStorage.getItem('participant_name')
-      const auth = !!(pid || admin || session)
-      setIsAuth(auth)
-      if (auth && name) setParticipantName(name)
-      else if (session?.user?.name) setParticipantName(session.user.name)
-    }
-  }, [session])
 
   const navItems = [
-    { href:'/',             label:'Главная',     icon:'\uE80F', protected: false },
-    { href:'/register',     label:'Регистрация', icon:'\uE70F', protected: false },
-    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3', protected: true  },
-    { href:'/participants', label:'Участники',   icon:'\uE716', protected: true  },
+    { href:'/',             label:'Главная',     icon:'\uE80F' },
+    { href:'/register',     label:'Регистрация', icon:'\uE70F' },
+    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3' },
+    { href:'/participants', label:'Участники',   icon:'\uE716' },
   ]
   const mdl2 = { fontFamily:'"Segoe MDL2 Assets","Segoe UI Symbol",sans-serif', fontSize:14 }
 
@@ -98,34 +83,14 @@ export default function Layout({ children }) {
 
         {navItems.map(item => {
           const active = router.pathname === item.href
-          if (item.protected && !isAuth) {
-            return (
-              <button key={item.href} onClick={() => {
-                setShowNavToast(true)
-                setTimeout(() => setShowNavToast(false), 4000)
-              }} style={{
-                display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
-                fontSize:13, fontWeight:600, letterSpacing:0.3,
-                color: th.textSec, background:'none', border:'none', cursor:'pointer',
-                borderBottom:'2px solid transparent', fontFamily:'inherit', opacity:0.6,
-              }}>
-                <span style={mdl2}>{item.icon}</span>
-                {item.label}
-              </button>
-            )
-          }
           return (
-            <Link key={item.href} href={item.href}
-              style={{
-                display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
-                fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
-                color: active ? th.primary : th.textSec,
-                borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
-                transition:'color 0.2s, background 0.2s',
-              }}
-              onMouseEnter={e=>{if(!active){e.currentTarget.style.color=th.primary;e.currentTarget.style.background='rgba(255,255,255,0.05)'}}}
-              onMouseLeave={e=>{if(!active){e.currentTarget.style.color=th.textSec;e.currentTarget.style.background='transparent'}}}
-            >
+            <Link key={item.href} href={item.href} style={{
+              display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
+              fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
+              color: active ? th.primary : th.textSec,
+              borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
+              transition:'color 0.2s',
+            }}>
               <span style={mdl2}>{item.icon}</span>
               {item.label}
             </Link>
@@ -142,75 +107,34 @@ export default function Layout({ children }) {
             padding:'6px 12px', borderRadius:8, background:'rgba(255,255,255,0.05)',
             border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, fontWeight:500,
             cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
-            transition:'background 0.2s, border-color 0.2s',
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.borderColor=th.primary}}
-          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.borderColor=th.border}}
-          >
+          }}>
             <span style={mdl2}>{'\uE790'}</span> Тема
           </button>
 
 
           {session?.user ? (
-            /* Вошёл через Google */
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {session.user.image && (
                 <Image src={session.user.image} alt={session.user.name||''} width={32} height={32}
                   style={{ borderRadius:'50%', border:`2px solid ${th.border}` }}/>
               )}
-              <Link href="/profile" style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}>
+              <span style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {session.user.name}
-              </Link>
-              <button onClick={() => { signOut({ callbackUrl:'/login' }) }} style={{
+              </span>
+              <button onClick={() => signOut({ callbackUrl:'/login' })} style={{
                 padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
                 border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'background 0.2s',
-              }}
-              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,72,96,0.22)'}
-              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,72,96,0.1)'}
-              >Выйти</button>
-            </div>
-          ) : participantName ? (
-            /* Вошёл по логину/паролю или как админ */
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{
-                width:32, height:32, borderRadius:'50%',
-                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:14, fontWeight:700, color:'#fff', flexShrink:0,
-              }}>{participantName.charAt(0).toUpperCase()}</div>
-              <Link
-                href={localStorage.getItem('admin_logged_in') ? '/admin' : '/profile'}
-                style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', textDecoration:'none' }}
-              >{participantName}</Link>
-              <button onClick={() => {
-                localStorage.removeItem('participant_id')
-                localStorage.removeItem('participant_name')
-                localStorage.removeItem('admin_logged_in')
-                setParticipantName(null)
-                setIsAuth(false)
-                router.push('/')
-              }} style={{
-                padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
-                border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'background 0.2s',
-              }}
-              onMouseEnter={e=>e.currentTarget.style.background='rgba(255,72,96,0.22)'}
-              onMouseLeave={e=>e.currentTarget.style.background='rgba(255,72,96,0.1)'}
-              >Выйти</button>
+                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+              }}>Выйти</button>
             </div>
           ) : (
-            /* Не вошёл */
             <Link href="/login" style={{
               padding:'6px 14px', borderRadius:8, textDecoration:'none',
               background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
               color:'#fff', fontSize:12, fontWeight:700, letterSpacing:0.5,
               boxShadow:`0 2px 10px ${th.shadow}`,
-              display:'flex', alignItems:'center', gap:5, transition:'opacity 0.2s',
-            }}
-            onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-            onMouseLeave={e=>e.currentTarget.style.opacity='1'}
-            >
+              display:'flex', alignItems:'center', gap:5,
+            }}>
               <span style={mdl2}>{'\uE72E'}</span> Войти
             </Link>
           )}
@@ -229,29 +153,6 @@ export default function Layout({ children }) {
         `}</style>
         {typeof children === 'function' ? children(th) : children}
       </main>
-
-      {/* NAV AUTH TOAST */}
-      {showNavToast && (
-        <div style={{
-          position:'fixed', top:70, left:'50%', transform:'translateX(-50%)',
-          zIndex:2000, background:'#0d1f30', border:'1px solid rgba(255,72,96,0.45)',
-          borderRadius:12, padding:'14px 24px', boxShadow:'0 8px 32px rgba(0,0,0,0.6)',
-          display:'flex', alignItems:'center', gap:12, whiteSpace:'nowrap',
-          animation:'slideDown 0.25s ease',
-        }}>
-          <span style={{ fontSize:20 }}>🔒</span>
-          <span style={{ color:'#fff', fontSize:14 }}>
-            Сначала{' '}
-            <Link href="/register" onClick={() => setShowNavToast(false)} style={{ color:th.primary, textDecoration:'underline', fontWeight:700 }}>
-              зарегистрируйтесь
-            </Link>
-            {' '}или{' '}
-            <Link href="/login" onClick={() => setShowNavToast(false)} style={{ color:th.primary, textDecoration:'underline', fontWeight:700 }}>
-              войдите
-            </Link>
-          </span>
-        </div>
-      )}
 
       {/* THEME MODAL */}
       {showThemeModal && (

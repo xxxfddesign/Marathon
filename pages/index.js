@@ -1,4 +1,5 @@
 import Layout from '../components/Layout'
+import withAuth from '../components/withAuth'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
@@ -10,18 +11,12 @@ function HomePage() {
   const router = useRouter()
   const [stats, setStats] = useState({ participants: 0, countries: 0 })
   const [showLoginMsg, setShowLoginMsg] = useState(false)
-  const [isAuth, setIsAuth] = useState(false)
-
-  useEffect(() => {
-    const pid = localStorage.getItem('participant_id')
-    setIsAuth(!!session || !!pid)
-  }, [session])
 
   function requireAuth(e, href) {
-    if (!isAuth) {
+    if (!session) {
       e.preventDefault()
       setShowLoginMsg(true)
-      setTimeout(() => setShowLoginMsg(false), 4000)
+      setTimeout(() => setShowLoginMsg(false), 3000)
     } else {
       router.push(href)
     }
@@ -53,32 +48,23 @@ function HomePage() {
 
             {/* Action buttons */}
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <button onClick={() => router.push('/register')} style={{
+              <button onClick={(e) => requireAuth(e, '/register')} style={{
                 padding:'12px 24px', borderRadius:10, background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
-                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit', transition:'opacity 0.2s',
-              }}
-              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
-              >📝 Регистрация</button>
+                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
+              }}>📝 Регистрация</button>
               <button onClick={(e) => requireAuth(e, '/participants')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`, transition:'opacity 0.2s',
-              }}
-              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
-              >👥 Участники</button>
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
+              }}>👥 Участники</button>
               <button onClick={(e) => requireAuth(e, '/bmi')} style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                 color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`, transition:'opacity 0.2s',
-              }}
-              onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-              onMouseLeave={e=>e.currentTarget.style.opacity='1'}
-              >⚖️ Калькулятор BMI</button>
+                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
+              }}>⚖️ Калькулятор BMI</button>
               <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
                 padding:'12px 24px', borderRadius:10,
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
@@ -94,20 +80,13 @@ function HomePage() {
             {/* Login required message */}
             {showLoginMsg && (
               <div style={{
-                background:'rgba(255,72,96,0.10)', border:'1px solid rgba(255,72,96,0.35)',
-                borderRadius:12, padding:'14px 20px', display:'flex', alignItems:'center', gap:12,
+                background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
+                borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
+                animation:'fadeIn 0.2s ease',
               }}>
-                <span style={{ fontSize:22 }}>🔒</span>
-                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>
-                  Сначала{' '}
-                  <Link href="/register" style={{ color:'#00C6FF', textDecoration:'underline', fontWeight:700 }}>
-                    зарегистрируйтесь
-                  </Link>
-                  {' '}или{' '}
-                  <Link href="/login" style={{ color:'#00C6FF', textDecoration:'underline', fontWeight:700 }}>
-                    войдите
-                  </Link>
-                </span>
+                <span style={{ fontSize:18 }}>🔒</span>
+                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
+  
               </div>
             )}
 
