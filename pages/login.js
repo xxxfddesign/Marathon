@@ -10,7 +10,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  // Если уже залогинен через Google — на главную
   useEffect(() => {
     if (status === 'authenticated') router.replace('/')
   }, [status, router])
@@ -67,7 +66,10 @@ export default function LoginPage() {
                 width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
                 background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
                 color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+                transition:'border-color 0.2s',
               }}
+              onFocus={e => e.target.style.borderColor = '#0072FF'}
+              onBlur={e => e.target.style.borderColor = '#1E3C64'}
             />
           </div>
           <div>
@@ -82,7 +84,10 @@ export default function LoginPage() {
                 width:'100%', padding:'12px 14px', borderRadius:10, boxSizing:'border-box',
                 background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
                 color:'#fff', fontSize:14, fontFamily:'inherit', outline:'none',
+                transition:'border-color 0.2s',
               }}
+              onFocus={e => e.target.style.borderColor = '#0072FF'}
+              onBlur={e => e.target.style.borderColor = '#1E3C64'}
             />
           </div>
 
@@ -93,15 +98,30 @@ export default function LoginPage() {
           )}
 
           <div style={{ display:'flex', gap:10, marginTop:4 }}>
-            <button type="button" onClick={handleLoginPassword} style={{
-              flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
-              border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-            }}>Login</button>
-            <button type="button" onClick={() => router.push('/')} style={{
-              flex:1, padding:'12px', borderRadius:10,
-              background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
-              color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-            }}>Cancel</button>
+            <button
+              type="button"
+              onClick={handleLoginPassword}
+              style={{
+                flex:1, padding:'12px', borderRadius:10, background:'linear-gradient(135deg,#0072FF,#00C6FF)',
+                border:'none', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                transition:'opacity 0.15s, transform 0.15s, box-shadow 0.15s',
+                boxShadow:'0 4px 14px rgba(0,114,255,0.35)',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity='0.88'; e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 6px 20px rgba(0,114,255,0.5)' }}
+              onMouseLeave={e => { e.currentTarget.style.opacity='1'; e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 4px 14px rgba(0,114,255,0.35)' }}
+            >Войти</button>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              style={{
+                flex:1, padding:'12px', borderRadius:10,
+                background:'rgba(255,255,255,0.05)', border:'1px solid #1E3C64',
+                color:'#C9D4E5', fontWeight:600, fontSize:14, cursor:'pointer', fontFamily:'inherit',
+                transition:'background 0.15s, border-color 0.15s, transform 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor='#2E5C94'; e.currentTarget.style.transform='translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor='#1E3C64'; e.currentTarget.style.transform='translateY(0)' }}
+            >Отмена</button>
           </div>
         </div>
 
@@ -119,7 +139,10 @@ export default function LoginPage() {
             display:'flex', alignItems:'center', justifyContent:'center', gap:12,
             fontSize:15, fontWeight:600, color:'#1a1a2e', fontFamily:'inherit',
             boxShadow:'0 4px 16px rgba(0,0,0,0.3)',
+            transition:'box-shadow 0.15s, transform 0.15s',
           }}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.45)'; e.currentTarget.style.transform='translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.3)'; e.currentTarget.style.transform='translateY(0)' }}
         >
           <svg width="20" height="20" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -130,14 +153,6 @@ export default function LoginPage() {
           </svg>
           Войти через Google
         </button>
-
-        <div style={{
-          marginTop:24, background:'rgba(0,198,255,0.06)', border:'1px solid rgba(0,198,255,0.2)',
-          borderRadius:10, padding:'10px 16px', textAlign:'center',
-        }}>
-          <div style={{ fontSize:11, color:'#C9D4E5', textTransform:'uppercase', letterSpacing:1, marginBottom:3 }}>🗓 Дата марафона</div>
-          <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:20, fontWeight:700, color:'#00C6FF' }}>15 ИЮНЯ 2026</div>
-        </div>
       </div>
     </div>
   )
