@@ -1,20 +1,36 @@
 import Layout from '../components/Layout'
-import withAuth from '../components/withAuth'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { GITHUB_BASE } from '../lib/constants'
 
+function HoverBtn({ onClick, children, style, hoverStyle }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ ...style, ...(hov ? hoverStyle : {}) }}
+    >{children}</button>
+  )
+}
+
 function HomePage() {
   const { data: session } = useSession()
   const router = useRouter()
   const [stats, setStats] = useState({ participants: 0, countries: 0 })
   const [showLoginMsg, setShowLoginMsg] = useState(false)
+  const [adminLogged, setAdminLogged] = useState(false)
 
-  function requireAuth(e, href) {
-    if (!session) {
-      e.preventDefault()
+  useEffect(() => {
+    setAdminLogged(localStorage.getItem('admin_logged_in') === 'true')
+  }, [])
+
+  function navigate(href) {
+    const isAuth = session || adminLogged
+    if (!isAuth) {
       setShowLoginMsg(true)
       setTimeout(() => setShowLoginMsg(false), 3000)
     } else {
@@ -48,30 +64,39 @@ function HomePage() {
 
             {/* Action buttons */}
             <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <button onClick={(e) => requireAuth(e, '/register')} style={{
-                padding:'12px 24px', borderRadius:10, background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
-                boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
-              }}>📝 Регистрация</button>
-              <button onClick={(e) => requireAuth(e, '/participants')} style={{
-                padding:'12px 24px', borderRadius:10,
-                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
-              }}>👥 Участники</button>
-              <button onClick={(e) => requireAuth(e, '/bmi')} style={{
-                padding:'12px 24px', borderRadius:10,
-                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer', fontFamily:'inherit',
-                border:'none', boxShadow:`0 4px 14px ${th.shadow}`,
-              }}>⚖️ Калькулятор BMI</button>
-              <a href="https://t.me/MarathonSepia5Bot" target="_blank" rel="noopener noreferrer" style={{
-                padding:'12px 24px', borderRadius:10,
-                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-                color:'#fff', fontWeight:700, fontSize:14, textDecoration:'none',
-                boxShadow:`0 4px 14px ${th.shadow}`,
-                display:'flex', alignItems:'center', gap:8,
-              }}>
+              {[
+                { label:'📝 Регистрация', href:'/register' },
+                { label:'👥 Участники',   href:'/participants' },
+                { label:'⚖️ Калькулятор BMI', href:'/bmi' },
+              ].map(b => (
+                <HoverBtn
+                  key={b.href}
+                  onClick={() => navigate(b.href)}
+                  style={{
+                    padding:'12px 24px', borderRadius:10,
+                    background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                    color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer',
+                    boxShadow:`0 4px 14px ${th.shadow}`, fontFamily:'inherit',
+                    transition:'all 0.15s',
+                  }}
+                  hoverStyle={{ transform:'translateY(-2px)', boxShadow:`0 8px 22px ${th.shadow}`, filter:'brightness(1.1)' }}
+                >{b.label}</HoverBtn>
+              ))}
+              <a
+                href="https://t.me/MarathonSepia5Bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding:'12px 24px', borderRadius:10,
+                  background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                  color:'#fff', fontWeight:700, fontSize:14, textDecoration:'none',
+                  boxShadow:`0 4px 14px ${th.shadow}`,
+                  display:'flex', alignItems:'center', gap:8,
+                  transition:'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.filter='brightness(1.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.filter='' }}
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.61c-.152.678-.554.843-1.122.524l-3.104-2.287-1.497 1.44c-.165.165-.304.304-.624.304l.223-3.162 5.754-5.198c.25-.223-.054-.346-.388-.123L7.08 14.766l-3.042-.95c-.661-.207-.674-.661.138-.978l11.89-4.586c.551-.2 1.033.134.496.996z"/></svg>
                 Написать боту
               </a>
@@ -82,11 +107,9 @@ function HomePage() {
               <div style={{
                 background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
                 borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
-                animation:'fadeIn 0.2s ease',
               }}>
                 <span style={{ fontSize:18 }}>🔒</span>
                 <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
-  
               </div>
             )}
 
