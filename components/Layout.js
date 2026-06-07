@@ -49,20 +49,46 @@ function Countdown({ primary }) {
   )
 }
 
+/* Reusable hover button */
+function HoverBtn({ onClick, children, style, hoverStyle }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ ...style, ...(hov ? hoverStyle : {}) }}
+    >
+      {children}
+    </button>
+  )
+}
+
 export default function Layout({ children }) {
   const { data: session } = useSession()
   const router = useRouter()
   const [theme, setTheme] = useTheme()
   const [showThemeModal, setShowThemeModal] = useState(false)
+  const [adminLogged, setAdminLogged] = useState(false)
   const th = THEMES[theme] || THEMES.ocean
 
+  useEffect(() => {
+    setAdminLogged(localStorage.getItem('admin_logged_in') === 'true')
+  }, [])
+
   const navItems = [
-    { href:'/',             label:'Главная',     icon:'\uE80F' },
-    { href:'/register',     label:'Регистрация', icon:'\uE70F' },
-    { href:'/bmi',          label:'Расчёт BMI',  icon:'\uE9F3' },
-    { href:'/participants', label:'Участники',   icon:'\uE716' },
+    { href:'/',             label:'Главная',          icon:'\uE80F' },
+    { href:'/register',     label:'Регистрация',      icon:'\uE70F' },
+    { href:'/bmi',          label:'Расчёт BMI',       icon:'\uE9F3' },
+    { href:'/participants', label:'Участники',        icon:'\uE716' },
   ]
   const mdl2 = { fontFamily:'"Segoe MDL2 Assets","Segoe UI Symbol",sans-serif', fontSize:14 }
+
+  function adminLogout() {
+    localStorage.removeItem('admin_logged_in')
+    setAdminLogged(false)
+    router.push('/')
+  }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden', background:th.bg, color:th.text, fontFamily:"'Inter','Segoe UI',sans-serif", transition:'background 0.4s' }}>
@@ -84,16 +110,7 @@ export default function Layout({ children }) {
         {navItems.map(item => {
           const active = router.pathname === item.href
           return (
-            <Link key={item.href} href={item.href} style={{
-              display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
-              fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
-              color: active ? th.primary : th.textSec,
-              borderBottom: active ? `2px solid ${th.primary}` : '2px solid transparent',
-              transition:'color 0.2s',
-            }}>
-              <span style={mdl2}>{item.icon}</span>
-              {item.label}
-            </Link>
+            <NavLink key={item.href} href={item.href} active={active} th={th} mdl2={mdl2} icon={item.icon} label={item.label} />
           )
         })}
 
@@ -103,40 +120,92 @@ export default function Layout({ children }) {
           <span style={{ fontSize:11, color:th.textSec, fontWeight:500, letterSpacing:0.5 }}>
             {THEMES[theme]?.name}
           </span>
-          <button onClick={() => setShowThemeModal(true)} style={{
-            padding:'6px 12px', borderRadius:8, background:'rgba(255,255,255,0.05)',
-            border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, fontWeight:500,
-            cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
-          }}>
+
+          <HoverBtn
+            onClick={() => setShowThemeModal(true)}
+            style={{
+              padding:'6px 12px', borderRadius:8, background:'rgba(255,255,255,0.05)',
+              border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, fontWeight:500,
+              cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit',
+              transition:'all 0.15s',
+            }}
+            hoverStyle={{ background:'rgba(255,255,255,0.12)', borderColor:th.primary, color:th.text }}
+          >
             <span style={mdl2}>{'\uE790'}</span> Тема
-          </button>
+          </HoverBtn>
 
-
-          {session?.user ? (
+          {/* Admin logged in state */}
+          {adminLogged && (
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {session.user.image && (
+              {/* Admin avatar */}
+              <div style={{
+                width:32, height:32, borderRadius:'50%',
+                background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:13, fontWeight:700, color:'#fff',
+                border:`2px solid ${th.border}`,
+                flexShrink:0,
+              }}>А</div>
+              <span style={{ fontSize:13, color:th.textSec, fontWeight:500 }}>Администратор</span>
+
+              <HoverBtn
+                onClick={() => router.push('/admin')}
+                style={{
+                  padding:'5px 12px', borderRadius:8,
+                  background:`rgba(0,114,255,0.12)`,
+                  border:`1px solid rgba(0,114,255,0.3)`,
+                  color:th.primary, fontSize:12, fontWeight:600,
+                  cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
+                }}
+                hoverStyle={{ background:`rgba(0,114,255,0.25)`, borderColor:th.primary, transform:'translateY(-1px)', boxShadow:`0 4px 12px ${th.shadow}` }}
+              >⚙️ Панель управления</HoverBtn>
+
+              <HoverBtn
+                onClick={adminLogout}
+                style={{
+                  padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
+                  border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
+                  fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
+                }}
+                hoverStyle={{ background:'rgba(255,72,96,0.22)', borderColor:'#FF4860', transform:'translateY(-1px)' }}
+              >Выйти</HoverBtn>
+            </div>
+          )}
+
+          {/* Google session state */}
+          {!adminLogged && session?.user && (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              {session.user.image ? (
                 <Image src={session.user.image} alt={session.user.name||''} width={32} height={32}
                   style={{ borderRadius:'50%', border:`2px solid ${th.border}` }}/>
+              ) : (
+                <div style={{
+                  width:32, height:32, borderRadius:'50%',
+                  background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:13, fontWeight:700, color:'#fff', border:`2px solid ${th.border}`, flexShrink:0,
+                }}>
+                  {(session.user.name||'U')[0].toUpperCase()}
+                </div>
               )}
               <span style={{ fontSize:13, color:th.textSec, maxWidth:120, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {session.user.name}
               </span>
-              <button onClick={() => signOut({ callbackUrl:'/login' })} style={{
-                padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
-                border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
-                fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-              }}>Выйти</button>
+              <HoverBtn
+                onClick={() => signOut({ callbackUrl:'/login' })}
+                style={{
+                  padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
+                  border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
+                  fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
+                }}
+                hoverStyle={{ background:'rgba(255,72,96,0.22)', borderColor:'#FF4860', transform:'translateY(-1px)' }}
+              >Выйти</HoverBtn>
             </div>
-          ) : (
-            <Link href="/login" style={{
-              padding:'6px 14px', borderRadius:8, textDecoration:'none',
-              background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
-              color:'#fff', fontSize:12, fontWeight:700, letterSpacing:0.5,
-              boxShadow:`0 2px 10px ${th.shadow}`,
-              display:'flex', alignItems:'center', gap:5,
-            }}>
-              <span style={mdl2}>{'\uE72E'}</span> Войти
-            </Link>
+          )}
+
+          {/* Not logged in */}
+          {!adminLogged && !session?.user && (
+            <HoverBtnLink href="/login" th={th} mdl2={mdl2} />
           )}
         </div>
       </nav>
@@ -167,27 +236,89 @@ export default function Layout({ children }) {
             <div style={{ fontFamily:'Rajdhani,sans-serif', fontSize:22, fontWeight:700, marginBottom:20 }}>🎨 Выбор темы</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               {Object.entries(THEMES).map(([key, t]) => (
-                <div key={key} onClick={() => { setTheme(key); setShowThemeModal(false) }} style={{
-                  border:`2px solid ${theme===key ? th.primary : th.border}`,
-                  borderRadius:14, padding:16, cursor:'pointer', position:'relative',
-                  transition:'all 0.2s',
-                }}>
-                  {theme===key && <span style={{ position:'absolute', top:8, right:10, fontSize:14, color:th.primary, fontWeight:700 }}>✓</span>}
-                  <div style={{ height:50, borderRadius:8, marginBottom:10, overflow:'hidden', background:`linear-gradient(90deg,${t.bg},${t.card})` }}>
-                    <img src={`${GITHUB_BASE}theme_${key}.png`} alt={t.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>e.target.style.display='none'}/>
-                  </div>
-                  <div style={{ fontSize:14, fontWeight:700, color:th.text }}>{t.name}</div>
-                </div>
+                <ThemeCard key={key} thKey={key} t={t} current={theme} primary={th.primary} border={th.border} text={th.text} onSelect={() => { setTheme(key); setShowThemeModal(false) }} />
               ))}
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:20 }}>
-              <button onClick={() => setShowThemeModal(false)} style={{ padding:'8px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
-                Закрыть
-              </button>
+              <HoverBtn
+                onClick={() => setShowThemeModal(false)}
+                style={{ padding:'8px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s' }}
+                hoverStyle={{ background:'rgba(255,255,255,0.12)', borderColor:th.primary }}
+              >Закрыть</HoverBtn>
             </div>
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function NavLink({ href, active, th, mdl2, icon, label }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <Link
+      href={href}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:8,
+        fontSize:13, fontWeight:600, letterSpacing:0.3, textDecoration:'none',
+        color: active ? th.primary : hov ? th.text : th.textSec,
+        borderBottom: active ? `2px solid ${th.primary}` : hov ? `2px solid ${th.primary}88` : '2px solid transparent',
+        background: hov && !active ? 'rgba(255,255,255,0.04)' : 'transparent',
+        transition:'color 0.15s, border-color 0.15s, background 0.15s',
+      }}
+    >
+      <span style={mdl2}>{icon}</span>
+      {label}
+    </Link>
+  )
+}
+
+function HoverBtnLink({ href, th, mdl2 }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <Link
+      href={href}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        padding:'6px 14px', borderRadius:8, textDecoration:'none',
+        background: hov
+          ? `linear-gradient(135deg,${th.primaryDk},${th.primary})`
+          : `linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+        color:'#fff', fontSize:12, fontWeight:700, letterSpacing:0.5,
+        boxShadow: hov ? `0 6px 20px ${th.shadow}` : `0 2px 10px ${th.shadow}`,
+        display:'flex', alignItems:'center', gap:5,
+        transform: hov ? 'translateY(-1px)' : 'translateY(0)',
+        transition:'all 0.15s',
+      }}
+    >
+      <span style={mdl2}>{'\uE72E'}</span> Войти
+    </Link>
+  )
+}
+
+function ThemeCard({ thKey, t, current, primary, border, text, onSelect }) {
+  const [hov, setHov] = useState(false)
+  const active = thKey === current
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        border:`2px solid ${active ? primary : hov ? primary+'88' : border}`,
+        borderRadius:14, padding:16, cursor:'pointer', position:'relative',
+        transition:'all 0.15s', transform: hov && !active ? 'translateY(-2px)' : 'none',
+        boxShadow: hov ? `0 6px 20px rgba(0,0,0,0.25)` : 'none',
+      }}
+    >
+      {active && <span style={{ position:'absolute', top:8, right:10, fontSize:14, color:primary, fontWeight:700 }}>✓</span>}
+      <div style={{ height:50, borderRadius:8, marginBottom:10, overflow:'hidden', background:`linear-gradient(90deg,${t.bg},${t.card})` }}>
+        <img src={`${GITHUB_BASE}theme_${thKey}.png`} alt={t.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>e.target.style.display='none'}/>
+      </div>
+      <div style={{ fontSize:14, fontWeight:700, color:text }}>{t.name}</div>
     </div>
   )
 }
