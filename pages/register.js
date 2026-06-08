@@ -1,5 +1,4 @@
 import Layout from '../components/Layout'
-import withAuth from '../components/withAuth'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { getBmiCategory, GITHUB_BASE } from '../lib/constants'
@@ -12,7 +11,7 @@ function Input({ label, error, ...props }) {
       {label && <label style={{ fontSize:12, fontWeight:600, color:'var(--text-sec)', textTransform:'uppercase', letterSpacing:0.5 }}>{label}</label>}
       <input style={{
         padding:'10px 14px', background:'var(--input-bg)', border:`1px solid ${error?'#FF4860':'var(--border)'}`,
-        borderRadius:10, color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', width:'100%',
+        borderRadius:10, color:'var(--text)', fontSize:14, fontFamily:'inherit', outline:'none', width:'100%', boxSizing:'border-box',
       }} {...props}/>
       {error && <span style={{ color:'#FF4860', fontSize:12 }}>{error}</span>}
     </div>
@@ -23,7 +22,7 @@ function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({
     first_name:'', last_name:'', email:'', phone:'', birth_date:'1990-01-01',
-    country:'Казахстан', gender:'m', password:'', password2:'',
+    country:'Казахстан', gender:'m', login:'', password:'', password2:'',
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -41,6 +40,8 @@ function RegisterPage() {
     if (!form.phone.trim()) e.phone = 'Введите телефон'
     if (!form.birth_date) e.birth_date = 'Укажите дату'
     if (!form.country) e.country = 'Выберите страну'
+    if (!form.login.trim() || form.login.trim().length < 3) e.login = 'Минимум 3 символа'
+    if (/\s/.test(form.login)) e.login = 'Логин не должен содержать пробелы'
     if (form.password.length < 6) e.password = 'Минимум 6 символов'
     if (form.password !== form.password2) e.password2 = 'Пароли не совпадают'
     return e
@@ -60,6 +61,8 @@ function RegisterPage() {
         country: form.country,
         gender: form.gender,
         role: 'Runner',
+        login: form.login.trim().toLowerCase(),
+        password: form.password,
         bmi: bmiData?.bmi || null,
         bmi_category: bmiData?.category || null,
       }
@@ -69,11 +72,21 @@ function RegisterPage() {
         body: JSON.stringify(body),
       })
       if (res.ok) {
+        const data = await res.json()
+        // Auto-login the new participant
+        if (data.id) {
+          localStorage.setItem('participant_id', data.id)
+          localStorage.setItem('participant_name', `${data.first_name} ${data.last_name}`)
+        }
         setSuccess(true)
-        setTimeout(() => router.push('/participants'), 2000)
+        setTimeout(() => router.push('/profile'), 1800)
       } else {
         const d = await res.json()
-        setErrors({ submit: d.error || 'Ошибка при сохранении' })
+        if (d.error && d.error.includes('login')) {
+          setErrors({ login: 'Этот логин уже занят. Выберите другой.' })
+        } else {
+          setErrors({ submit: d.error || 'Ошибка при сохранении' })
+        }
       }
     } catch {
       setErrors({ submit: 'Ошибка сети' })
@@ -96,7 +109,7 @@ function RegisterPage() {
 
             {success && (
               <div style={{ background:'rgba(0,229,168,0.1)', border:'1px solid rgba(0,229,168,0.3)', borderRadius:12, padding:'14px 20px', color:'#00E5A8', fontWeight:600, marginBottom:20, fontSize:14 }}>
-                ✅ Участник успешно зарегистрирован! Переход к списку…
+                ✅ Вы зарегистрированы! Открываем ваш профиль…
               </div>
             )}
             {errors.submit && (
@@ -141,16 +154,29 @@ function RegisterPage() {
                 </div>
               </div>
 
-              <Input label="Пароль" type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Минимум 6 символов" error={errors.password}/>
-              {form.password.length > 0 && (
-                <div>
-                  <div style={{ height:4, background:th.card, borderRadius:4, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${(pwdStrength/3)*100}%`, background:pwdColors[pwdStrength], borderRadius:4, transition:'all 0.3s' }}/>
-                  </div>
-                  <span style={{ fontSize:11, color:pwdColors[pwdStrength] }}>{pwdLabels[pwdStrength]}</span>
+              {/* LOGIN + PASSWORD section */}
+              <div style={{ background:`rgba(255,255,255,0.03)`, border:`1px solid ${th.border}`, borderRadius:14, padding:'18px 20px', display:'flex', flexDirection:'column', gap:14 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:th.textSec, marginBottom:2 }}>
+                  🔑 Данные для входа
                 </div>
-              )}
-              <Input label="Повторите пароль" type="password" value={form.password2} onChange={e=>set('password2',e.target.value)} placeholder="Повторите пароль" error={errors.password2}/>
+                <Input
+                  label="Логин"
+                  value={form.login}
+                  onChange={e=>set('login',e.target.value.replace(/\s/g,''))}
+                  placeholder="Придумайте логин (без пробелов)"
+                  error={errors.login}
+                />
+                <Input label="Пароль" type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Минимум 6 символов" error={errors.password}/>
+                {form.password.length > 0 && (
+                  <div>
+                    <div style={{ height:4, background:th.card, borderRadius:4, overflow:'hidden' }}>
+                      <div style={{ height:'100%', width:`${(pwdStrength/3)*100}%`, background:pwdColors[pwdStrength], borderRadius:4, transition:'all 0.3s' }}/>
+                    </div>
+                    <span style={{ fontSize:11, color:pwdColors[pwdStrength] }}>{pwdLabels[pwdStrength]}</span>
+                  </div>
+                )}
+                <Input label="Повторите пароль" type="password" value={form.password2} onChange={e=>set('password2',e.target.value)} placeholder="Повторите пароль" error={errors.password2}/>
+              </div>
 
               {bmiData && (
                 <div style={{ background:`rgba(0,229,168,0.07)`, border:'1px solid rgba(0,229,168,0.2)', borderRadius:12, padding:'12px 18px', fontSize:13, color:'#00E5A8' }}>
@@ -164,10 +190,18 @@ function RegisterPage() {
                   background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
                   color:'#fff', fontWeight:700, fontSize:14, border:'none', cursor:'pointer', fontFamily:'inherit',
                   opacity: loading ? 0.7 : 1, boxShadow:`0 4px 14px ${th.shadow}`,
-                }}>{loading ? 'Сохранение…' : 'Далее →'}</button>
+                }}>{loading ? 'Регистрация…' : 'Зарегистрироваться →'}</button>
                 <button onClick={() => router.push('/')} style={{ padding:'12px 20px', borderRadius:10, background:'rgba(255,255,255,0.06)', border:`1px solid ${th.border}`, color:th.textSec, fontSize:14, cursor:'pointer', fontFamily:'inherit' }}>
                   Отмена
                 </button>
+              </div>
+
+              <div style={{ fontSize:13, color:th.textSec }}>
+                Уже зарегистрированы?{' '}
+                <a href="/login" style={{ color:th.primary, fontWeight:600, textDecoration:'none' }}
+                  onMouseEnter={e => e.target.style.textDecoration='underline'}
+                  onMouseLeave={e => e.target.style.textDecoration='none'}
+                >Войти</a>
               </div>
             </div>
           </div>
@@ -202,4 +236,4 @@ function RegisterPage() {
   )
 }
 
-export default withAuth(RegisterPage)
+export default RegisterPage
