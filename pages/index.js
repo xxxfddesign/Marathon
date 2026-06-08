@@ -23,16 +23,21 @@ function HomePage() {
   const [stats, setStats] = useState({ participants: 0, countries: 0 })
   const [showLoginMsg, setShowLoginMsg] = useState(false)
   const [adminLogged, setAdminLogged] = useState(false)
+  const [participantId, setParticipantId] = useState(null)
 
   useEffect(() => {
     setAdminLogged(localStorage.getItem('admin_logged_in') === 'true')
+    setParticipantId(localStorage.getItem('participant_id'))
   }, [])
 
+  function isAuthenticated() {
+    return !!(session || adminLogged || participantId)
+  }
+
   function navigate(href) {
-    const isAuth = session || adminLogged
-    if (!isAuth) {
+    if (!isAuthenticated()) {
       setShowLoginMsg(true)
-      setTimeout(() => setShowLoginMsg(false), 3000)
+      setTimeout(() => setShowLoginMsg(false), 4000)
     } else {
       router.push(href)
     }
@@ -105,11 +110,22 @@ function HomePage() {
             {/* Login required message */}
             {showLoginMsg && (
               <div style={{
-                background:'rgba(255,72,96,0.12)', border:'1px solid rgba(255,72,96,0.35)',
-                borderRadius:10, padding:'12px 18px', display:'flex', alignItems:'center', gap:10,
+                background:'rgba(255,72,96,0.1)', border:'1px solid rgba(255,72,96,0.3)',
+                borderRadius:12, padding:'14px 20px', display:'flex', alignItems:'center', gap:12,
               }}>
-                <span style={{ fontSize:18 }}>🔒</span>
-                <span style={{ color:'#FF4860', fontSize:14, fontWeight:600 }}>Сначала войдите в систему</span>
+                <span style={{ fontSize:20 }}>🔒</span>
+                <div style={{ fontSize:14 }}>
+                  <span style={{ color:'#FF4860', fontWeight:600 }}>Для доступа необходим аккаунт. </span>
+                  <Link href="/login" style={{ color:th.primary, fontWeight:700, textDecoration:'none' }}
+                    onMouseEnter={e => e.target.style.textDecoration='underline'}
+                    onMouseLeave={e => e.target.style.textDecoration='none'}
+                  >Войти</Link>
+                  <span style={{ color:th.textSec }}> или </span>
+                  <Link href="/register" style={{ color:th.primary, fontWeight:700, textDecoration:'none' }}
+                    onMouseEnter={e => e.target.style.textDecoration='underline'}
+                    onMouseLeave={e => e.target.style.textDecoration='none'}
+                  >Зарегистрироваться</Link>
+                </div>
               </div>
             )}
 
