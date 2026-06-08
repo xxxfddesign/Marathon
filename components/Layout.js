@@ -49,7 +49,6 @@ function Countdown({ primary }) {
   )
 }
 
-/* Reusable hover button */
 function HoverBtn({ onClick, children, style, hoverStyle }) {
   const [hov, setHov] = useState(false)
   return (
@@ -70,17 +69,38 @@ export default function Layout({ children }) {
   const [theme, setTheme] = useTheme()
   const [showThemeModal, setShowThemeModal] = useState(false)
   const [adminLogged, setAdminLogged] = useState(false)
+  const [participantName, setParticipantName] = useState(null)
+  const [participantId, setParticipantId] = useState(null)
   const th = THEMES[theme] || THEMES.ocean
 
   useEffect(() => {
     setAdminLogged(localStorage.getItem('admin_logged_in') === 'true')
+    const pid = localStorage.getItem('participant_id')
+    const pname = localStorage.getItem('participant_name')
+    if (pid && pname) {
+      setParticipantId(pid)
+      setParticipantName(pname)
+    }
+  }, [])
+
+  // Refresh participant name if it changes (e.g. after profile save)
+  useEffect(() => {
+    function onStorage() {
+      const pid = localStorage.getItem('participant_id')
+      const pname = localStorage.getItem('participant_name')
+      if (pid && pname) { setParticipantId(pid); setParticipantName(pname) }
+      else { setParticipantId(null); setParticipantName(null) }
+      setAdminLogged(localStorage.getItem('admin_logged_in') === 'true')
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
   }, [])
 
   const navItems = [
-    { href:'/',             label:'Главная',          icon:'\uE80F' },
-    { href:'/register',     label:'Регистрация',      icon:'\uE70F' },
-    { href:'/bmi',          label:'Расчёт BMI',       icon:'\uE9F3' },
-    { href:'/participants', label:'Участники',        icon:'\uE716' },
+    { href:'/',             label:'Главная',      icon:'\uE80F' },
+    { href:'/register',     label:'Регистрация',  icon:'\uE70F' },
+    { href:'/bmi',          label:'Расчёт BMI',   icon:'\uE9F3' },
+    { href:'/participants', label:'Участники',    icon:'\uE716' },
   ]
   const mdl2 = { fontFamily:'"Segoe MDL2 Assets","Segoe UI Symbol",sans-serif', fontSize:14 }
 
@@ -88,6 +108,22 @@ export default function Layout({ children }) {
     localStorage.removeItem('admin_logged_in')
     setAdminLogged(false)
     router.push('/')
+  }
+
+  function participantLogout() {
+    localStorage.removeItem('participant_id')
+    localStorage.removeItem('participant_name')
+    setParticipantId(null)
+    setParticipantName(null)
+    router.push('/')
+  }
+
+  // Get initials from participant name
+  function getInitials(name) {
+    if (!name) return '?'
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+    return parts[0][0].toUpperCase()
   }
 
   return (
@@ -134,10 +170,9 @@ export default function Layout({ children }) {
             <span style={mdl2}>{'\uE790'}</span> Тема
           </HoverBtn>
 
-          {/* Admin logged in state */}
+          {/* Admin logged in */}
           {adminLogged && (
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              {/* Admin avatar */}
               <div style={{
                 width:32, height:32, borderRadius:'50%',
                 background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
@@ -172,8 +207,30 @@ export default function Layout({ children }) {
             </div>
           )}
 
-          {/* Google session state */}
-          {!adminLogged && session?.user && (
+          {/* Participant logged in */}
+          {!adminLogged && participantId && !session?.user && (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <HoverBtnProfileLink
+                href="/profile"
+                initials={getInitials(participantName)}
+                name={participantName}
+                th={th}
+                active={router.pathname === '/profile'}
+              />
+              <HoverBtn
+                onClick={participantLogout}
+                style={{
+                  padding:'5px 12px', borderRadius:8, background:'rgba(255,72,96,0.1)',
+                  border:'1px solid rgba(255,72,96,0.25)', color:'#FF4860', fontSize:12,
+                  fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'all 0.15s',
+                }}
+                hoverStyle={{ background:'rgba(255,72,96,0.22)', borderColor:'#FF4860', transform:'translateY(-1px)' }}
+              >Выйти</HoverBtn>
+            </div>
+          )}
+
+          {/* Google session */}
+          {!adminLogged && !participantId && session?.user && (
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               {session.user.image ? (
                 <Image src={session.user.image} alt={session.user.name||''} width={32} height={32}
@@ -204,7 +261,7 @@ export default function Layout({ children }) {
           )}
 
           {/* Not logged in */}
-          {!adminLogged && !session?.user && (
+          {!adminLogged && !participantId && !session?.user && (
             <HoverBtnLink href="/login" th={th} mdl2={mdl2} />
           )}
         </div>
@@ -295,6 +352,38 @@ function HoverBtnLink({ href, th, mdl2 }) {
       }}
     >
       <span style={mdl2}>{'\uE72E'}</span> Войти
+    </Link>
+  )
+}
+
+function HoverBtnProfileLink({ href, initials, name, th, active }) {
+  const [hov, setHov] = useState(false)
+  return (
+    <Link
+      href={href}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display:'flex', alignItems:'center', gap:8, textDecoration:'none',
+        padding:'4px 10px 4px 4px', borderRadius:24,
+        background: hov || active ? `rgba(255,255,255,0.08)` : 'transparent',
+        border: `1px solid ${hov || active ? th.primary : th.border}`,
+        transition:'all 0.15s',
+      }}
+    >
+      <div style={{
+        width:28, height:28, borderRadius:'50%',
+        background:`linear-gradient(135deg,${th.primary},${th.primaryDk})`,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:11, fontWeight:800, color:'#fff', flexShrink:0,
+        boxShadow: hov ? `0 0 0 2px ${th.primary}66` : 'none',
+        transition:'box-shadow 0.15s',
+      }}>{initials}</div>
+      <span style={{
+        fontSize:13, fontWeight:600, color: hov ? th.text : th.textSec,
+        maxWidth:110, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        transition:'color 0.15s',
+      }}>{name}</span>
     </Link>
   )
 }
