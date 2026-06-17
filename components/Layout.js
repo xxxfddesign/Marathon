@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { THEMES, GITHUB_BASE, getMarathonDate } from '../lib/constants'
+import AiChat from './AiChat'
 
 function useTheme() {
   const [theme, setThemeState] = useState('ocean')
@@ -312,6 +313,7 @@ export default function Layout({ children }) {
           @keyframes slideDown { from { opacity:0; transform:translate(-50%,-12px) } to { opacity:1; transform:translateX(-50%) } }
         `}</style>
         {typeof children === 'function' ? children(th) : children}
+        <AiChat th={th} />
       </main>
 
       {/* AUTH TOAST */}

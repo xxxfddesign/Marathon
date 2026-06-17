@@ -1,9 +1,31 @@
-import { supabase } from '../../lib/supabase'
+// pages/api/telegram-webhook.js
+// Marathon Skills Bot — с ИИ на Google Gemini (бесплатно)
+
+import { createClient } from '@supabase/supabase-js'
 
 export const config = { api: { bodyParser: true } }
 
-const BOT_NAME = 'Marathon Skills 2026'
-const SITE = 'marathon-sepia-five.vercel.app'
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
+
+const MARATHON_INFO = {
+  date: '15 июня 2026',
+  location: 'Marathon Skills, Казахстан',
+  distances: ['5 км', '10 км', '21,1 км (полумарафон)', '42,2 км (марафон)'],
+  startTime: '07:00',
+  registration: 'Регистрация на сайте marathon-skills.vercel.app',
+}
+
+const SYSTEM_INSTRUCTION = `Ты — ИИ-ассистент марафона Marathon Skills 2026. Отвечай только на русском, кратко и с эмодзи.
+Марафон: 15 июня 2026, Казахстан, старт 07:00. Дистанции: 5км, 10км, 21.1км, 42.2км. Сайт: marathon-skills.vercel.app.
+На вопросы не про марафон: "Я помогаю только с информацией о Marathon Skills 2026 🏃"
+Максимум 150 слов.`
+
+// AI sessions per chat (in-memory)
+const aiSessions = {}
+const aiModeUsers = new Set()
 
 async function sendMessage(chatId, text, extra = {}) {
   const token = process.env.TELEGRAM_BOT_TOKEN
@@ -23,290 +45,331 @@ async function sendTyping(chatId) {
   })
 }
 
+function formatParticipant(p) {
+  return (
+    `👤 <b>${p.first_name} ${p.last_name}</b>\n` +
+    `📊 BMI: ${p.bmi ?? '—'} (${p.bmi_category ?? '—'})\n` +
+    `🏃 Роль: ${p.role ?? '—'}\n` +
+    `🌍 Страна: ${p.country ?? '—'}`
+  )
+}
+
 function makeKeyboard(buttons) {
   return {
     reply_markup: JSON.stringify({
       keyboard: buttons.map(row => row.map(text => ({ text }))),
       resize_keyboard: true,
+      one_time_keyboard: false,
     }),
   }
 }
 
-const MAIN_KB = makeKeyboard([
+const MAIN_KEYBOARD = makeKeyboard([
   ['🏃 Найти участника', '📊 Статистика'],
-  ['📅 О марафоне',      '📍 Дистанции'],
-  ['⏰ Старт и место',   '🏅 Подготовка'],
-  ['💪 Советы бегуну',  '📝 Регистрация'],
-  ['❓ Помощь'],
+  ['📅 О марафоне', '📍 Дистанции'],
+  ['⏰ Время старта', '📝 Регистрация'],
+  ['🤖 ИИ-ассистент', '❓ Помощь'],
 ])
 
-function fmt(p) {
-  const gender = p.gender === 'f' ? '👩' : '👨'
-  const bmiEmoji = { Normal:'💚', Underweight:'🟡', Overweight:'🟠', Obese:'🔴' }[p.bmi_category] || '⚪'
-  return (
-    `${gender} <b>${p.first_name} ${p.last_name}</b>\n` +
-    `${bmiEmoji} BMI: <b>${p.bmi ?? '—'}</b> — ${p.bmi_category ?? '—'}\n` +
-    `🏃 Роль: ${p.role ?? '—'} | 🌍 ${p.country ?? '—'}`
-  )
-}
+const AI_KEYBOARD = makeKeyboard([
+  ['🔚 Выйти из ИИ-режима'],
+])
 
-async function searchParticipants(query) {
-  const clean = query.replace(/[^а-яёА-ЯЁa-zA-Z0-9\s-]/g, '').trim()
-  if (!clean) return []
-  const [byLast, byFirst] = await Promise.all([
-    supabase.from('participants').select('id,first_name,last_name,bmi,bmi_category,role,country,gender').ilike('last_name', `%${clean}%`).limit(8),
-    supabase.from('participants').select('id,first_name,last_name,bmi,bmi_category,role,country,gender').ilike('first_name', `%${clean}%`).limit(8),
-  ])
-  const seen = new Set()
-  return [...(byLast.data || []), ...(byFirst.data || [])].filter(p => {
-    if (seen.has(p.id)) return false
-    seen.add(p.id); return true
-  })
-}
+async function askGemini(chatId, userText) {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    await sendMessage(chatId, '⚠️ ИИ-ассистент не настроен. Добавьте GEMINI_API_KEY в Vercel.', MAIN_KEYBOARD)
+    return
+  }
 
-function match(lower, ...keywords) {
-  return keywords.some(k => lower.includes(k))
-}
+  if (!aiSessions[chatId]) aiSessions[chatId] = []
+  const history = aiSessions[chatId]
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end()
-
-  try {
-    const message = req.body?.message
-    if (!message) return res.status(200).json({ ok: true })
-
-    const chatId = message.chat.id
-    const firstName = message.chat.first_name || 'друг'
-    const text = (message.text || '').trim()
-    const L = text.toLowerCase()
-
-    await sendTyping(chatId)
-
-    // ═══ /start ═══
-    if (text === '/start') {
-      await sendMessage(chatId,
-        `👋 Привет, <b>${firstName}</b>! Я бот марафона <b>${BOT_NAME}</b>!\n\n` +
-        `🤖 Я умею:\n` +
-        `• Искать участников по имени или фамилии\n` +
-        `• Отвечать на вопросы о марафоне\n` +
-        `• Давать советы по подготовке к забегу\n` +
-        `• Показывать статистику участников\n\n` +
-        `Просто нажми кнопку или напиши мне что угодно! 👇`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ ПОМОЩЬ ═══
-    if (match(L, 'помощ', '/help', '❓') || L === 'помощь') {
-      await sendMessage(chatId,
-        `📖 <b>Что я умею:</b>\n\n` +
-        `🔍 <b>Поиск участника</b> — напиши имя или фамилию\n` +
-        `   Пример: <i>Иванов</i> или <i>Анна Петрова</i>\n\n` +
-        `📅 <b>Информация</b> — о дате, месте, дистанциях\n\n` +
-        `💪 <b>Советы</b> — как подготовиться к марафону\n\n` +
-        `📊 <b>Статистика</b> — сколько участников, стран\n\n` +
-        `❓ Просто пиши вопрос — я постараюсь ответить!`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ О МАРАФОНЕ ═══
-    if (match(L, 'о марафоне', 'информаци', '/info', '📅', 'дата', 'когда марафон', 'marathon skills')) {
-      await sendMessage(chatId,
-        `📅 <b>Marathon Skills 2026</b>\n\n` +
-        `🗓 Дата: <b>15 июня 2026</b>\n` +
-        `📍 Место: <b>Казахстан</b>\n` +
-        `⏰ Старт: <b>07:00</b> (явка с 06:00)\n` +
-        `🌡 Погода: <b>+18°C</b>, ветер 12 км/ч\n` +
-        `🏅 Медали: <b>Gold</b> для всех финишёров\n` +
-        `🌐 Сайт: <b>${SITE}</b>\n\n` +
-        `💡 Марафон проходит раз в год — не пропусти!`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ ДИСТАНЦИИ ═══
-    if (match(L, 'дистанци', '📍', 'километр', 'км', 'полумарафон', 'сколько км', 'какая длина')) {
-      await sendMessage(chatId,
-        `📍 <b>Дистанции марафона</b>\n\n` +
-        `🟢 <b>5 км</b> — для начинающих\n` +
-        `🔵 <b>10 км</b> — для любителей\n` +
-        `🟠 <b>21,1 км</b> — полумарафон\n` +
-        `🔴 <b>42,2 км</b> — классический марафон\n\n` +
-        `🏆 Рекорд трассы: <b>2:01</b>\n` +
-        `👟 Средний темп участников: <b>4:32 мин/км</b>\n\n` +
-        `Выбери дистанцию при регистрации на сайте!`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ СТАРТ И МЕСТО ═══
-    if (match(L, 'старт', 'время', 'место', 'где', 'адрес', '⏰', 'начало', 'во сколько')) {
-      await sendMessage(chatId,
-        `⏰ <b>Старт и место</b>\n\n` +
-        `📍 Место: <b>Казахстан</b>\n` +
-        `🗓 Дата: <b>15 июня 2026</b>\n` +
-        `⏰ Старт забега: <b>07:00</b>\n` +
-        `🕕 Явка участников: <b>06:00</b>\n\n` +
-        `⚠️ Приходи заранее — нужно пройти регистрацию на месте и получить номер!\n\n` +
-        `Подробности на сайте: <b>${SITE}</b>`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ РЕГИСТРАЦИЯ ═══
-    if (match(L, 'регистрац', 'записаться', 'участвовать', 'как попасть', '📝', 'зарегистрир')) {
-      await sendMessage(chatId,
-        `📝 <b>Как зарегистрироваться</b>\n\n` +
-        `1️⃣ Зайди на сайт: <b>${SITE}</b>\n` +
-        `2️⃣ Нажми кнопку «Регистрация»\n` +
-        `3️⃣ Заполни анкету\n` +
-        `4️⃣ Рассчитай свой BMI\n` +
-        `5️⃣ Получи подтверждение!\n\n` +
-        `✅ Регистрация открыта до <b>15 июня 2026</b>\n` +
-        `💡 Уже зарегистрированным — войди через сайт чтобы отслеживать свой профиль`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ СТАТИСТИКА ═══
-    if (match(L, 'статистик', '📊', '/stats', 'сколько участник', 'сколько человек')) {
-      const { data } = await supabase.from('participants').select('role,country,bmi_category,gender')
-      if (!data) {
-        await sendMessage(chatId, '⚠️ Не удалось получить данные. Попробуй позже.', MAIN_KB)
-        return res.status(200).json({ ok: true })
-      }
+  // Get context
+  let contextData = ''
+  const lower = userText.toLowerCase()
+  if (lower.includes('статист') || lower.includes('сколько') || lower.includes('участник')) {
+    const { data } = await supabaseAdmin.from('participants').select('role, country, bmi_category, gender')
+    if (data) {
       const total = data.length
       const countries = new Set(data.map(p => p.country).filter(Boolean)).size
       const runners = data.filter(p => p.role === 'Runner').length
-      const coordinators = data.filter(p => p.role === 'Coordinator').length
+      contextData = ` [ДАННЫЕ: участников ${total}, стран ${countries}, бегунов ${runners}]`
+    }
+  }
+
+  const nameMatches = userText.match(/[А-ЯЁа-яёA-Za-z]{3,}/g) || []
+  if (nameMatches.length > 0 && (lower.includes('найди') || lower.includes('есть') || lower.includes('ищу') || lower.includes('бежит'))) {
+    for (const term of nameMatches) {
+      if (term.length < 3) continue
+      const { data: r1 } = await supabaseAdmin.from('participants').select('first_name, last_name, role, country').ilike('last_name', `%${term}%`).limit(3)
+      const { data: r2 } = await supabaseAdmin.from('participants').select('first_name, last_name, role, country').ilike('first_name', `%${term}%`).limit(3)
+      const found = [...(r1 || []), ...(r2 || [])]
+      if (found.length > 0) {
+        contextData += ` [НАЙДЕНЫ: ${found.map(p => `${p.first_name} ${p.last_name} (${p.role})`).join('; ')}]`
+        break
+      }
+    }
+  }
+
+  const systemText = SYSTEM_INSTRUCTION + contextData
+
+  // Build history for Gemini
+  history.push({ role: 'user', parts: [{ text: userText }] })
+  if (history.length > 10) history.splice(0, history.length - 10)
+
+  await sendTyping(chatId)
+
+  try {
+    const geminiHistory = history.slice(0, -1)
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemText }] },
+          contents: [
+            ...geminiHistory,
+            { role: 'user', parts: [{ text: userText }] },
+          ],
+          generationConfig: { maxOutputTokens: 350, temperature: 0.7 },
+        }),
+      }
+    )
+
+    if (!response.ok) throw new Error('Gemini error')
+    const data = await response.json()
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не смог ответить.'
+
+    history.push({ role: 'model', parts: [{ text: reply }] })
+
+    await sendMessage(chatId, `🤖 <b>ИИ-ассистент:</b>\n\n${reply}`, AI_KEYBOARD)
+  } catch {
+    await sendMessage(chatId, '⚠️ ИИ временно недоступен. Попробуй позже!', MAIN_KEYBOARD)
+    aiModeUsers.delete(chatId)
+    delete aiSessions[chatId]
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
+  try {
+    const { message } = req.body
+    if (!message) return res.status(200).json({ ok: true })
+
+    const chatId = message.chat.id
+    const text = (message.text || '').trim()
+    const lower = text.toLowerCase()
+
+    // Exit AI mode
+    if (lower === '🔚 выйти из ии-режима' || lower === '/exit' || lower === '/menu') {
+      aiModeUsers.delete(chatId)
+      delete aiSessions[chatId]
+      await sendMessage(chatId, '👋 Вышел из режима ИИ. Используй кнопки меню!', MAIN_KEYBOARD)
+      return res.status(200).json({ ok: true })
+    }
+
+    // AI mode — handle any message
+    if (aiModeUsers.has(chatId)) {
+      await askGemini(chatId, text)
+      return res.status(200).json({ ok: true })
+    }
+
+    // Enter AI mode
+    if (lower === '🤖 ии-ассистент' || lower === '/ai') {
+      aiModeUsers.add(chatId)
+      await sendMessage(chatId,
+        `🤖 <b>Режим ИИ-ассистента активирован!</b>\n\n` +
+        `Работает на базе <b>Google Gemini</b> ✨\n\n` +
+        `Я могу:\n` +
+        `• Ответить на любой вопрос о марафоне\n` +
+        `• Найти участника по имени/фамилии\n` +
+        `• Показать статистику\n` +
+        `• Объяснить дистанции и правила\n\n` +
+        `Просто напиши вопрос! ✍️\n` +
+        `Для выхода нажми <b>🔚 Выйти из ИИ-режима</b>`,
+        AI_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // /start
+    if (text === '/start') {
+      await sendMessage(chatId,
+        `🏃‍♂️ <b>Привет! Я бот марафона Marathon Skills 2026!</b>\n\n` +
+        `Я могу:\n` +
+        `• 🔍 Найти участника по имени или фамилии\n` +
+        `• 📊 Показать статистику участников\n` +
+        `• 📅 Рассказать о дате и месте марафона\n` +
+        `• 📍 Показать дистанции\n` +
+        `• 🤖 Ответить на любой вопрос через ИИ\n\n` +
+        `Используй кнопки меню!`,
+        MAIN_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // /help
+    if (text === '/help' || lower.includes('помощ') || lower === '❓ помощь') {
+      await sendMessage(chatId,
+        `📖 <b>Как пользоваться ботом:</b>\n\n` +
+        `<b>Поиск участника:</b>\n` +
+        `• Напиши имя или фамилию участника\n\n` +
+        `<b>🤖 ИИ-ассистент (Gemini):</b>\n` +
+        `• Нажми кнопку "🤖 ИИ-ассистент"\n` +
+        `• Задавай любые вопросы о марафоне\n\n` +
+        `<b>Команды:</b>\n` +
+        `/start — главное меню\n` +
+        `/stats — статистика\n` +
+        `/info — о марафоне\n` +
+        `/ai — режим ИИ\n` +
+        `/help — справка`,
+        MAIN_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // /stats
+    if (text === '/stats' || lower.includes('статистик') || lower === '📊 статистика') {
+      const { data, error } = await supabaseAdmin
+        .from('participants')
+        .select('role, country, bmi_category, gender')
+
+      if (error || !data) {
+        await sendMessage(chatId, '⚠️ Не удалось получить статистику.', MAIN_KEYBOARD)
+        return res.status(200).json({ ok: true })
+      }
+
+      const total = data.length
+      const countries = new Set(data.map(p => p.country).filter(Boolean)).size
+      const runners = data.filter(p => p.role === 'Runner').length
       const males = data.filter(p => p.gender === 'm').length
       const females = data.filter(p => p.gender === 'f').length
       const normal = data.filter(p => p.bmi_category === 'Normal').length
+
       await sendMessage(chatId,
         `📊 <b>Статистика участников</b>\n\n` +
         `👥 Всего зарегистрировано: <b>${total}</b>\n` +
-        `🌍 Представлено стран: <b>${countries}</b>\n\n` +
+        `🌍 Стран представлено: <b>${countries}</b>\n` +
         `🏃 Бегунов: <b>${runners}</b>\n` +
-        `📋 Координаторов: <b>${coordinators}</b>\n\n` +
-        `👨 Мужчин: <b>${males}</b>\n` +
-        `👩 Женщин: <b>${females}</b>\n\n` +
-        `💚 С нормальным BMI: <b>${normal}</b> из ${total}`,
-        MAIN_KB)
+        `👨 Мужчин: <b>${males}</b> | 👩 Женщин: <b>${females}</b>\n` +
+        `💚 Нормальный BMI: <b>${normal}</b> из ${total}`,
+        MAIN_KEYBOARD
+      )
       return res.status(200).json({ ok: true })
     }
 
-    // ═══ СОВЕТЫ БЕГУНУ ═══
-    if (match(L, 'совет', 'подготовк', '💪', 'как бежать', 'как готовиться', 'тренировк', 'питани', 'что взять', 'что надеть')) {
-      const tips = [
-        [`💪 <b>Физическая подготовка</b>\n\n` +
-        `• За 3 месяца до старта — регулярные пробежки 3-4 раза в неделю\n` +
-        `• Увеличивай дистанцию постепенно — не более 10% в неделю\n` +
-        `• За 2 недели до марафона — снизь нагрузку (тейпер)\n` +
-        `• Обязательно делай длинные пробежки по выходным\n\n` +
-        `🏁 <b>За день до старта:</b>\n` +
-        `• Не бегай совсем\n` +
-        `• Хорошо выспись\n` +
-        `• Ешь углеводы — паста, рис, хлеб`],
-
-        [`🍌 <b>Питание на марафоне</b>\n\n` +
-        `• За 3-4 часа до старта: лёгкий завтрак с углеводами\n` +
-        `• Каждые 45 минут во время бега: гель или банан\n` +
-        `• Пей воду на каждом пункте питания\n` +
-        `• Не пробуй ничего нового в день забега!\n\n` +
-        `⚡ На пунктах питания обычно есть:\n` +
-        `вода, изотоник, бананы, апельсины, гели`],
-
-        [`👟 <b>Что взять на марафон</b>\n\n` +
-        `• Беговые кроссовки (обкатанные, не новые!)\n` +
-        `• Беговая форма по погоде\n` +
-        `• Пластырь (предотвратить натирания)\n` +
-        `• Гели / питание на дистанцию\n` +
-        `• Солнцезащитный крем\n` +
-        `• Наушники (по желанию)\n` +
-        `• Паспорт или номер участника\n\n` +
-        `☀️ Погода в день марафона: <b>+18°C</b>`],
-      ]
-      const tip = tips[Math.floor(Math.random() * tips.length)]
-      await sendMessage(chatId, tip[0] + `\n\n💡 Спроси ещё — у меня есть советы по питанию, экипировке и тактике!`, MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ BMI ═══
-    if (match(L, 'bmi', 'бми', 'индекс массы', 'вес', 'калькулятор')) {
+    // /info
+    if (text === '/info' || lower === '📅 о марафоне' || lower.includes('информаци') || lower.includes('о марафоне')) {
       await sendMessage(chatId,
-        `⚖️ <b>Калькулятор BMI</b>\n\n` +
-        `BMI (индекс массы тела) = вес(кг) / рост²(м)\n\n` +
-        `📊 Нормы:\n` +
-        `🟡 До 18.5 — недостаток веса\n` +
-        `💚 18.5–24.9 — норма (идеально для марафона)\n` +
-        `🟠 25–29.9 — избыточный вес\n` +
-        `🔴 От 30 — ожирение\n\n` +
-        `💡 Рассчитай свой BMI на сайте: <b>${SITE}</b>\n` +
-        `Результат автоматически сохранится в профиле!`,
-        MAIN_KB)
+        `📅 <b>Marathon Skills 2026</b>\n\n` +
+        `🗓 Дата: <b>${MARATHON_INFO.date}</b>\n` +
+        `📍 Место: <b>${MARATHON_INFO.location}</b>\n` +
+        `⏰ Старт: <b>${MARATHON_INFO.startTime}</b>\n` +
+        `📝 ${MARATHON_INFO.registration}`,
+        MAIN_KEYBOARD
+      )
       return res.status(200).json({ ok: true })
     }
 
-    // ═══ НАЙТИ УЧАСТНИКА (кнопка) ═══
-    if (L === '🏃 найти участника') {
+    // Дистанции
+    if (lower === '📍 дистанции' || lower.includes('дистанци')) {
+      await sendMessage(chatId,
+        `📍 <b>Дистанции марафона</b>\n\n` +
+        MARATHON_INFO.distances.map(d => `• ${d}`).join('\n') +
+        `\n\n<i>Выбери свою дистанцию при регистрации!</i>`,
+        MAIN_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // Время старта
+    if (lower === '⏰ время старта' || lower.includes('время') || lower.includes('старт') || lower.includes('начало')) {
+      await sendMessage(chatId,
+        `⏰ <b>Время старта</b>\n\n` +
+        `Марафон стартует в <b>${MARATHON_INFO.startTime}</b>\n` +
+        `📅 Дата: <b>${MARATHON_INFO.date}</b>\n\n` +
+        `Приходи заранее — регистрация стартов открывается в 06:00!`,
+        MAIN_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // Регистрация
+    if (lower === '📝 регистрация' || lower.includes('зарегистрир') || lower.includes('как записаться')) {
+      await sendMessage(chatId,
+        `📝 <b>Регистрация на марафон</b>\n\n` +
+        `🌐 <b>marathon-skills.vercel.app</b>\n\n` +
+        `• Рассчитай BMI\n• Заполни форму\n• Получи подтверждение\n\n` +
+        `Регистрация открыта до <b>${MARATHON_INFO.date}</b>!`,
+        MAIN_KEYBOARD
+      )
+      return res.status(200).json({ ok: true })
+    }
+
+    // Кнопка "Найти участника"
+    if (lower === '🏃 найти участника') {
       await sendMessage(chatId,
         `🔍 Введи имя или фамилию участника.\n\nНапример: <b>Иванов</b> или <b>Анна</b>`,
-        MAIN_KB)
+        MAIN_KEYBOARD
+      )
       return res.status(200).json({ ok: true })
     }
 
-    // ═══ ПОИСК УЧАСТНИКА ═══
-    // Ищем если написано что-то похожее на имя/фамилию
-    const searchTrigger = match(L, 'найди', 'найти', 'ищу', 'поищи', 'покажи', 'есть ли', 'участник')
-    const cleanText = text.replace(/найди|найти|ищу|поищи|покажи|участника|участник/gi, '').trim()
-    const queryText = searchTrigger ? cleanText : text
-
-    if (queryText.length >= 2 && /^[а-яёА-ЯЁa-zA-Z\s-]+$/.test(queryText)) {
-      const found = await searchParticipants(queryText)
-      if (found.length > 0) {
-        if (found.length === 1) {
-          await sendMessage(chatId, `✅ <b>Найден участник:</b>\n\n${fmt(found[0])}`, MAIN_KB)
-        } else {
-          const list = found.slice(0, 6).map((p, i) => `${i+1}. ${fmt(p)}`).join('\n\n')
-          await sendMessage(chatId,
-            `🔍 По запросу «<b>${queryText}</b>» найдено <b>${found.length}</b> участников:\n\n${list}` +
-            (found.length > 6 ? `\n\n<i>...и ещё ${found.length - 6}. Уточни запрос.</i>` : ''),
-            MAIN_KB)
-        }
-        return res.status(200).json({ ok: true })
-      } else if (searchTrigger || text.length <= 25) {
-        await sendMessage(chatId,
-          `😔 Участник «<b>${queryText}</b>» не найден.\n\nПроверь написание или попробуй другой вариант.`,
-          MAIN_KB)
+    // Поиск участника
+    if (text.length >= 2 && !lower.startsWith('/')) {
+      const searchTerm = text.replace(/[^а-яёА-ЯЁa-zA-Z\s-]/g, '').trim()
+      if (!searchTerm) {
+        await sendMessage(chatId, '❓ Введи имя или фамилию участника.', MAIN_KEYBOARD)
         return res.status(200).json({ ok: true })
       }
-    }
 
-    // ═══ ПРИВЕТСТВИЕ ═══
-    if (match(L, 'привет', 'здравствуй', 'хай', 'hello', 'hi ', 'добрый')) {
+      const { data: byLast } = await supabaseAdmin
+        .from('participants')
+        .select('id, first_name, last_name, bmi, bmi_category, role, country')
+        .ilike('last_name', `%${searchTerm}%`)
+        .limit(10)
+
+      const { data: byFirst } = await supabaseAdmin
+        .from('participants')
+        .select('id, first_name, last_name, bmi, bmi_category, role, country')
+        .ilike('first_name', `%${searchTerm}%`)
+        .limit(10)
+
+      const seen = new Set()
+      const combined = [...(byLast || []), ...(byFirst || [])].filter(p => {
+        if (seen.has(p.id)) return false
+        seen.add(p.id)
+        return true
+      })
+
+      if (combined.length === 0) {
+        await sendMessage(chatId,
+          `😔 Участник «<b>${searchTerm}</b>» не найден.\n\nПроверь написание или попробуй другой вариант.\n\n💡 Используй <b>🤖 ИИ-ассистента</b> для умного поиска!`,
+          MAIN_KEYBOARD
+        )
+        return res.status(200).json({ ok: true })
+      }
+
+      if (combined.length === 1) {
+        await sendMessage(chatId, `✅ Найден участник:\n\n${formatParticipant(combined[0])}`, MAIN_KEYBOARD)
+        return res.status(200).json({ ok: true })
+      }
+
+      const list = combined.slice(0, 8).map((p, i) => `${i + 1}. ${formatParticipant(p)}`).join('\n\n')
       await sendMessage(chatId,
-        `👋 Привет, <b>${firstName}</b>!\n\nЧем могу помочь? Используй кнопки меню или просто напиши вопрос! 😊`,
-        MAIN_KB)
+        `🔍 По запросу «<b>${searchTerm}</b>» найдено <b>${combined.length}</b> участник(ов):\n\n${list}${combined.length > 8 ? '\n\n<i>...ещё ' + (combined.length - 8) + '. Уточни запрос.</i>' : ''}`,
+        MAIN_KEYBOARD
+      )
       return res.status(200).json({ ok: true })
     }
 
-    // ═══ СПАСИБО ═══
-    if (match(L, 'спасибо', 'благодар', 'thanks', 'thank you', 'супер', 'отлично', 'класс')) {
-      await sendMessage(chatId,
-        `😊 Пожалуйста! Удачи на марафоне, <b>${firstName}</b>! 🏃‍♂️🏅\n\nЕсли будут вопросы — всегда рад помочь!`,
-        MAIN_KB)
-      return res.status(200).json({ ok: true })
-    }
-
-    // ═══ НЕИЗВЕСТНАЯ КОМАНДА ═══
     await sendMessage(chatId,
-      `🤔 Не совсем понял твой вопрос.\n\n` +
-      `Попробуй:\n` +
-      `• Нажать кнопку из меню\n` +
-      `• Написать имя или фамилию участника\n` +
-      `• Спросить: <i>«Когда марафон?»</i> или <i>«Как готовиться?»</i>`,
-      MAIN_KB)
+      `❓ Не понял запрос. Используй кнопки меню!\n\n💡 Попробуй <b>🤖 ИИ-ассистента</b> — он ответит на любой вопрос!`,
+      MAIN_KEYBOARD
+    )
     return res.status(200).json({ ok: true })
 
   } catch (err) {
