@@ -178,7 +178,7 @@ function HomePage() {
             <div style={{ position: 'relative', zIndex: 1, padding: 32, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)', border: `1px solid ${th.border}`, borderRadius: 14, padding: '16px 20px', textAlign: 'center' }}>
                 <div style={{ fontSize: 11, color: th.textSec, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>🗓 Дата марафона</div>
-                <div style={{ fontFamily: 'Rajdhani,sans-serif', fontSize: 26, fontWeight: 800, color: th.primary }}>15 ИЮНЯ 2026</div>
+                <div style={{ fontFamily: 'Rajdhani,sans-serif', fontSize: 26, fontWeight: 800, color: th.primary }}>25 ИЮНЯ 2026</div>
               </div>
               <div style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)', border: `1px solid ${th.border}`, borderRadius: 14, padding: '20px' }}>
                 {[
