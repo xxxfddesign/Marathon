@@ -1,7 +1,7 @@
 // pages/api/ai-chat.js
-// ИИ-ассистент на Google Gemini 2.0 Flash — бесплатно!
-// Получить ключ: https://aistudio.google.com → Get API Key
-// Добавить в Vercel: GEMINI_API_KEY
+// ИИ-ассистент на Groq (бесплатно!)
+// Получить ключ: https://console.groq.com → API Keys
+// Добавить в Vercel: GROQ_API_KEY
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -73,9 +73,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid request' })
   }
 
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) {
-    return res.status(200).json({ reply: '⚠️ ИИ-ассистент не настроен. Добавьте GEMINI_API_KEY в Vercel.' })
+    return res.status(200).json({ reply: '⚠️ ИИ-ассистент не настроен. Добавьте GROQ_API_KEY в Vercel.' })
   }
 
   try {
@@ -84,41 +84,37 @@ export default async function handler(req, res) {
       ? SYSTEM_INSTRUCTION + '\n\n' + contextData
       : SYSTEM_INSTRUCTION
 
-    // Build Gemini conversation history (last 10 messages)
     const historySlice = messages.slice(-10)
-    
-    // Gemini uses 'model' instead of 'assistant'
-    const geminiHistory = historySlice.slice(0, -1).map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
+    const chatMessages = [
+      { role: 'system', content: systemText },
+      ...historySlice.slice(0, -1).map(m => ({
+        role: m.role,
+        content: m.content,
+      })),
+      { role: 'user', content: userMessage },
+    ]
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemText }] },
-          contents: [
-            ...geminiHistory,
-            { role: 'user', parts: [{ text: userMessage }] },
-          ],
-          generationConfig: {
-            maxOutputTokens: 512,
-            temperature: 0.7,
-          },
-        }),
-      }
-    )
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: chatMessages,
+        max_tokens: 512,
+        temperature: 0.7,
+      }),
+    })
 
     if (!response.ok) {
       const err = await response.json()
-      throw new Error(err.error?.message || 'Gemini API error')
+      throw new Error(err.error?.message || 'Groq API error')
     }
 
     const data = await response.json()
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const reply = data.choices?.[0]?.message?.content
       || 'Извини, не смог ответить. Попробуй снова!'
 
     return res.status(200).json({ reply })
