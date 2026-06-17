@@ -11,7 +11,7 @@ const supabaseAdmin = createClient(
 )
 
 const MARATHON_INFO = {
-  date: '15 июня 2026',
+  date: '25 июня 2026',
   location: 'Marathon Skills, Казахстан',
   distances: ['5 км', '10 км', '21,1 км (полумарафон)', '42,2 км (марафон)'],
   startTime: '07:00',
@@ -19,7 +19,7 @@ const MARATHON_INFO = {
 }
 
 const SYSTEM_INSTRUCTION = `Ты — ИИ-ассистент марафона Marathon Skills 2026. Отвечай только на русском, кратко и с эмодзи.
-Марафон: 15 июня 2026, Казахстан, старт 07:00. Дистанции: 5км, 10км, 21.1км, 42.2км. Сайт: marathon-skills.vercel.app.
+Марафон: 25 июня 2026, Казахстан, старт 07:00. Дистанции: 5км, 10км, 21.1км, 42.2км. Сайт: marathon-skills.vercel.app.
 На вопросы не про марафон: "Я помогаю только с информацией о Marathon Skills 2026 🏃"
 Максимум 150 слов.`
 
